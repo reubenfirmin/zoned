@@ -1,0 +1,187 @@
+package zoned.framework.ui.libs
+
+import io.javalin.http.Context
+import kotlinx.html.*
+import zoned.framework.api.*
+import zoned.framework.api.Method.DELETE
+import zoned.framework.api.Method.GET
+import zoned.framework.api.Method.PATCH
+import zoned.framework.api.Method.POST
+import zoned.framework.api.Method.PUT
+import zoned.framework.form.ConvertedEntity
+import zoned.framework.ui.components.buttons.HTMXAction
+import zoned.framework.ui.layouts.HTMXTarget
+import zoned.framework.ui.libs.HTMX.Swap.*
+import zoned.framework.ui.libs.HTMX.htmxOnEvent
+import kotlin.reflect.KFunction
+import kotlin.reflect.KFunction1
+import kotlin.reflect.KFunction2
+
+/**
+ * Call an api path (which can include query params) and send results to a target element.
+ *
+ * You can also use HTMXParamLink, which sends params via a form.
+ */
+object HTMX {
+
+    /**
+     * This is done automatically when using page. However, can be done on an as-needed basis
+     */
+    fun HTMLTag.pushUrl() {
+        attributes["hx-push-url"] = "true"
+    }
+
+    fun HTMLTag.htmxOnEvent(event: String,
+                            path: String,
+                            target: String? = null,
+                            method: Method = POST,
+                            swap: Swap? = INNER,
+                            includeSelector: String? = null,
+                            swapDelay: Int? = 0): HTMLTag {
+        attributes["hx-trigger"] = event
+        when (method) {
+            POST -> attributes["hx-post"] = path
+            GET -> attributes["hx-get"] = path
+            PUT -> attributes["hx-put"] = path
+            DELETE -> attributes["hx-delete"] = path
+            PATCH -> attributes["hx-patch"] = path
+        }
+        if (target != null) {
+            attributes["hx-target"] = target
+        }
+        val swapAttr = when (swap) {
+            INNER ->  "innerHTML"
+            OUTER -> "outerHTML"
+            BEFOREEND -> "beforeend"
+            AFTEREND -> "afterend"
+            null -> null
+        }
+        val delay = if (swapDelay == null) {
+            ""
+        } else {
+            " swap:${swapDelay}ms"
+        }
+        if (swap != null) {
+            attributes["hx-swap"] = "$swapAttr$delay"
+        }
+        if (includeSelector != null) {
+            attributes["hx-include"] = includeSelector
+        }
+        return this
+    }
+
+    fun HTMLTag.htmxBoost() {
+        attributes["hx-boost"] = "true"
+    }
+
+    enum class Swap {
+        INNER, OUTER, BEFOREEND, AFTEREND
+    }
+}
+
+fun Context.target(target: HTMXTarget?) {
+    if (target != null) {
+        header("HX-Retarget", target.selector)
+    }
+}
+
+fun Context.location(path: String) {
+    header("HX-Location", path)
+}
+
+fun Context.setHistory() {
+    header("HX-Push-Url", path())
+}
+
+fun Context.unwrap() {
+    header("HX-Reselect", ".wrapper > *")
+}
+
+fun Context.redirect(location: String, external: Boolean): Response {
+    if (external) {
+        header("HX-Redirect", location)
+    }
+    return Response("", redirect = true)
+}
+
+fun Context.isDynamic() = headerMap().containsKey("hx-request") || headerMap().containsKey("HX-Request")
+
+private fun getRoute(action: HTMXAction): Route {
+    return route(action.handler).let {
+        action.parameterizer?.param(it) ?: it
+    }
+}
+
+fun HTMLTag.onLoad(action: HTMXAction): HTMLTag {
+    with (getRoute(action)) {
+        return htmxOnEvent("load", url(), method = method)
+    }
+}
+
+fun HTMLTag.onClick(action: HTMXAction): HTMLTag {
+    with (getRoute(action)) {
+        return htmxOnEvent(
+            "click",
+            url(),
+            method = method,
+            swap = action.swap,
+            swapDelay = action.swapDelay,
+            target = action.target,
+            includeSelector = action.includeSelector)
+    }
+}
+
+fun HTMLTag.onChange(action: HTMXAction): HTMLTag {
+    with (getRoute(action)) {
+        return htmxOnEvent("change",
+            url(),
+            method = method,
+            swap = action.swap,
+            target = action.target,
+            includeSelector = action.includeSelector)
+    }
+}
+
+fun HTMLTag.onKeyPress(action: HTMXAction, keycode: String): HTMLTag {
+    with (getRoute(action)) {
+        return htmxOnEvent("keypress[code=='$keycode']",
+            url(),
+            method = method,
+            swap = action.swap,
+            target = action.target,
+            includeSelector = action.includeSelector)
+    }
+}
+
+fun INPUT.onTypingPause(action: HTMXAction,
+                        delayMs: Int = 250): HTMLTag {
+    with (getRoute(action)) {
+        return htmxOnEvent("keyup changed delay:${delayMs}ms",
+            url(),
+            method = method,
+            swap = action.swap,
+            swapDelay = action.swapDelay,
+            target = action.target,
+            includeSelector = action.includeSelector)
+    }
+}
+
+fun HTMLTag.onKeypress(action: HTMXAction): HTMLTag {
+    with (getRoute(action)) {
+        return htmxOnEvent("keypress",
+            url(),
+            method = method,
+            swap = action.swap,
+            swapDelay = action.swapDelay,
+            target = action.target,
+            includeSelector = action.includeSelector)
+    }
+}
+
+fun withAction(handler: KFunction<Response>,
+               parameterizer: Parameterizer? = null,
+               includeSelector: String? = null,
+               swap: HTMX.Swap? = null,
+               swapDelay: Int? = null,
+               target: String? = null) =
+    HTMXAction(handler, parameterizer, includeSelector, swap, swapDelay, target)
