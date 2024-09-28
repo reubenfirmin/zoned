@@ -1,4 +1,4 @@
-package org.example.zoned.framework.ui.tags
+package zoned.framework.ui.tags
 
 import kotlinx.html.*
 import kotlinx.html.attributes.Attribute
@@ -28,6 +28,9 @@ open class SvgTag(classes: String?, consumer: TagConsumer<*>) : HTMLTag(
         set(newValue) {
             stringAttr[this, "viewBox"] = newValue
         }
+
+    var viewbox = viewBox
+
     var stroke: String
         get() = stringAttr[this, "stroke"]
         set(newValue) {

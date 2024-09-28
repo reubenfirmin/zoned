@@ -9,9 +9,9 @@ import kotlinx.html.TagConsumer
  */
 abstract class Icon(classes: String,
                     val filled: Boolean,
-                    val attributeSet: Map<String, String>,
-                    val viewBox: Pair<Int, Int> = 20 to 20,
-                    val color: String? = null,
+                    private val attributeSet: Map<String, String>,
+                    private val viewBoxDim: Pair<Int, Int> = 20 to 20,
+                    private val color: String? = null,
                     consumer: TagConsumer<*>):
     SvgTag(classes, consumer) {
 
@@ -19,7 +19,7 @@ abstract class Icon(classes: String,
 
     fun render() {
         attributes["aria-hidden"] = "true"
-        viewbox = "0 0 ${viewBox.first} ${viewBox.second}"
+        viewbox = "0 0 ${viewBoxDim.first} ${viewBoxDim.second}"
         if (color != null) {
             attributes["style"] = "color: #$color"
         }
