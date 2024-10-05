@@ -27,6 +27,7 @@ dependencies {
     api("org.jooq:jooq:${Versions.jooq}")
     api("org.jooq:jooq-kotlin:${Versions.jooq}")
     api("org.flywaydb:flyway-core:${Versions.flyway}")
+    api("net.bytebuddy:byte-buddy:1.14.5")
 
     api("com.auth0:java-jwt:4.4.0")
     api("com.zaxxer:HikariCP:2.6.1")

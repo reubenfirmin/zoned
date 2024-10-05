@@ -5,8 +5,10 @@ import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.JWTVerificationException
 import com.google.inject.Inject
+import com.google.inject.name.Named
 import zoned.framework.auth.Role.ANON
 import org.slf4j.LoggerFactory
+import zoned.framework.config.Bindings
 import zoned.framework.config.Config
 import java.lang.IllegalArgumentException
 import java.util.*
@@ -22,10 +24,10 @@ interface Person {
     val accountId: UUID
 }
 
-class JWTAuthentication @Inject constructor(config: Config) {
+class JWTAuthentication @Inject constructor(@Named(Bindings.JWT_SECRET) jwtSecret: String) {
 
     private val logger = LoggerFactory.getLogger(javaClass)
-    private val algorithm: Algorithm = Algorithm.HMAC256(config.jwtSecret)
+    private val algorithm: Algorithm = Algorithm.HMAC256(jwtSecret)
     private val anon = AuthUser(null, ANON)
 
     fun issue(person: Person): String {

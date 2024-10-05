@@ -7,7 +7,8 @@ import javax.sql.DataSource
 class DataSourceProducer {
 
     companion object {
-        fun provideDataSource(config: Config): DataSource {
+
+        fun provideDataSource(config: DBConfig): DataSource {
             val hikariConfig = HikariConfig()
             hikariConfig.jdbcUrl = config.dbUrl()
             hikariConfig.username = config.dbUser
