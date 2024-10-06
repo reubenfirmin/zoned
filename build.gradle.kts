@@ -2,6 +2,7 @@ plugins {
     kotlin("jvm") version "2.0.20"
     id("com.github.node-gradle.node") version "7.0.1"
     `maven-publish`
+    `java-gradle-plugin`
 }
 
 group = "io.4rc"
@@ -53,6 +54,11 @@ dependencies {
     api("dev.misfitlabs.kotlinguice4:kotlin-guice:3.0.0")
     api("com.postmarkapp:postmark:1.11.1")
 
+    implementation("org.jooq:jooq-meta:${Versions.jooq}")
+    implementation("org.jooq:jooq-codegen:${Versions.jooq}")
+    implementation(gradleApi())
+    implementation(kotlin("gradle-plugin"))
+
     testImplementation(kotlin("test"))
 }
 
@@ -75,8 +81,7 @@ val generateTailwindCss by tasks.registering(com.github.gradle.node.npm.task.Npx
     command.set("tailwindcss")
     args.set(listOf(
         "-i", "src/main/resources/input.css",
-        "-o", "$buildDir/resources/main/library-styles.css",
-        "--minify"
+        "-o", "$buildDir/resources/main/library-styles.css"
     ))
 
     inputs.files(fileTree("src/main/kotlin"))
@@ -87,6 +92,15 @@ tasks.jar {
     dependsOn(generateTailwindCss)
 }
 
+gradlePlugin {
+    plugins {
+        create("zonedPlugin") {
+            id = "${project.group}.${project.name}"
+            implementationClass = "zoned.gradle.ZonedPlugin"
+        }
+    }
+}
+
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {
@@ -95,5 +109,11 @@ publishing {
     }
     repositories {
         mavenLocal()
+    }
+}
+
+afterEvaluate {
+    tasks.named<PluginUnderTestMetadata>("pluginUnderTestMetadata") {
+        pluginClasspath.from(tasks.named("generateTailwindCss"))
     }
 }
