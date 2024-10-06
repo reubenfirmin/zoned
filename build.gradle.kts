@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm") version "2.0.20"
+    id("com.github.node-gradle.node") version "7.0.1"
     `maven-publish`
 }
 
@@ -8,6 +9,11 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+}
+
+node {
+    version.set("20.10.0")
+    download.set(true)
 }
 
 object Versions {
@@ -61,6 +67,24 @@ kotlin {
 java {
     withSourcesJar()
     withJavadocJar()
+}
+
+val generateTailwindCss by tasks.registering(com.github.gradle.node.npm.task.NpxTask::class) {
+    dependsOn(tasks.processResources)
+
+    command.set("tailwindcss")
+    args.set(listOf(
+        "-i", "src/main/resources/input.css",
+        "-o", "$buildDir/resources/main/library-styles.css",
+        "--minify"
+    ))
+
+    inputs.files(fileTree("src/main/kotlin"))
+    outputs.file("$buildDir/resources/main/library-styles.css")
+}
+
+tasks.jar {
+    dependsOn(generateTailwindCss)
 }
 
 publishing {
