@@ -17,7 +17,7 @@ class MobileMenu(consumer : TagConsumer<*>):
         svg("w-5 h-5") {
             attributes["aria-hidden"] = "true"
             fill = "none"
-            viewbox = "0 0 17 14"
+            viewBox = "0 0 17 14"
             path {
                 stroke = "currentColor"
                 attributes["stroke-linecap"] = "round"

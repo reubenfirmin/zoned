@@ -23,13 +23,12 @@ open class SvgTag(classes: String?, consumer: TagConsumer<*>) : HTMLTag(
         set(newValue) {
             stringAttr[this, "fill"] = newValue
         }
+
     var viewBox: String
         get() = stringAttr[this, "viewBox"]
         set(newValue) {
             stringAttr[this, "viewBox"] = newValue
         }
-
-    var viewbox = viewBox
 
     var stroke: String
         get() = stringAttr[this, "stroke"]

@@ -19,7 +19,7 @@ abstract class Icon(classes: String,
 
     fun render() {
         attributes["aria-hidden"] = "true"
-        viewbox = "0 0 ${viewBoxDim.first} ${viewBoxDim.second}"
+        viewBox = "0 0 ${viewBoxDim.first} ${viewBoxDim.second}"
         if (color != null) {
             attributes["style"] = "color: #$color"
         }

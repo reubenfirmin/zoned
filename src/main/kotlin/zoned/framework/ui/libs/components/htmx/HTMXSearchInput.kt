@@ -22,7 +22,7 @@ class HTMXSearchInput(private val styleClasses: String,
             svg("w-5 h-5 text-gray-500 dark:text-gray-400") {
                 attributes["aria-hidden"] = "true"
                 fill = "currentColor"
-                viewbox = "0 0 20 20"
+                viewBox = "0 0 20 20"
                 path {
                     attributes["fill-rule"] = "evenodd"
                     d =

@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.0.0"
+    kotlin("jvm") version "2.0.20"
     `maven-publish`
 }
 
@@ -31,8 +31,8 @@ dependencies {
 
     api("com.auth0:java-jwt:4.4.0")
     api("com.zaxxer:HikariCP:2.6.1")
-    api("ch.qos.logback:logback-classic:1.4.6")
-    api("ch.qos.logback:logback-core:1.4.6")
+    api("ch.qos.logback:logback-classic:1.4.12")
+    api("ch.qos.logback:logback-core:1.4.14")
 
     api("at.favre.lib:bcrypt:0.10.2")
     api("com.fasterxml.jackson.core:jackson-core:${Versions.jackson}")

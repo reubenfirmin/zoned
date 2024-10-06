@@ -21,7 +21,7 @@ class Accordion(consumer: TagConsumer<*>): DIV(mapOf(), consumer) {
                     attributes["data-accordion-icon"] = "true"
                     attributes["aria-hidden"] = "true"
                     fill = "none"
-                    viewbox = "0 0 10 6"
+                    viewBox = "0 0 10 6"
                     path {
                         stroke = "currentColor"
                         attributes["stroke-linecap"] = "round"
@@ -86,7 +86,7 @@ class Accordion(consumer: TagConsumer<*>): DIV(mapOf(), consumer) {
                     attributes["data-accordion-icon"] = "true"
                     attributes["aria-hidden"] = "true"
                     fill = "none"
-                    viewbox = "0 0 10 6"
+                    viewBox = "0 0 10 6"
                     path {
                         stroke = "currentColor"
                         attributes["stroke-linecap"] = "round"
@@ -124,7 +124,7 @@ class Accordion(consumer: TagConsumer<*>): DIV(mapOf(), consumer) {
                     attributes["data-accordion-icon"] = "true"
                     attributes["aria-hidden"] = "true"
                     fill = "none"
-                    viewbox = "0 0 10 6"
+                    viewBox = "0 0 10 6"
                     path {
                         stroke = "currentColor"
                         attributes["stroke-linecap"] = "round"
