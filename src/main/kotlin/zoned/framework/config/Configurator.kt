@@ -37,8 +37,13 @@ fun DBConfig.dbUrl() = "jdbc:postgresql://$dbHost:$dbPort/$dbName"
 
 interface EnvironmentConfig: Config {
     @Env("ENV") val environment: String
-
-    fun env() = Environment.valueOf(environment)
+}
+fun EnvironmentConfig.env(): Environment {
+    try {
+        return Environment.valueOf(environment)
+    } catch (e: Exception) {
+        throw Exception("$environment is not a valid Environment")
+    }
 }
 
 class Configurator {
@@ -54,9 +59,9 @@ class Configurator {
             ?: dotenv[key]
             ?: throw Exception("$key not found in environment or .env file")
 
-        inline fun <reified T : Config> load(): T = load(T::class)
+        inline fun <reified T : Config> load(overrides: Map<String, Any> = mapOf()): T = load(T::class, overrides)
 
-        fun <T : Config> load(clazz: KClass<T>): T {
+        fun <T : Config> load(clazz: KClass<T>, overrides: Map<String, Any> = mapOf()): T {
             val envValues = mutableMapOf<String, Any>()
             val interfaceMethods = clazz.memberFunctions.associateBy { it.name }
 
@@ -82,6 +87,10 @@ class Configurator {
                 }
 
                 when {
+                    overrides.containsKey(method.name) -> {
+                        overrides[method.name]
+                    }
+                    // note: these have to be extension functions
                     interfaceMethods.containsKey(method.name) -> {
                         val kotlinFunction = interfaceMethods[method.name]
                         kotlinFunction?.call(null, *args.orEmpty())

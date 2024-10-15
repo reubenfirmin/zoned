@@ -79,6 +79,7 @@ object HTMX {
     }
 }
 
+// TODO move these to ConextExtensions
 fun Context.target(target: HTMXTarget?) {
     if (target != null) {
         header("HX-Retarget", target.selector)
@@ -90,7 +91,19 @@ fun Context.location(path: String) {
 }
 
 fun Context.setHistory() {
-    header("HX-Push-Url", path())
+    val queryString = queryParamMap().entries.flatMap { entry ->
+        entry.value.map { value ->
+            "${entry.key}=${value}"
+        }
+    }.joinToString("&")
+
+    val url = if (queryString.isNotEmpty()) {
+        "${path()}?$queryString"
+    } else {
+        path()
+    }
+
+    header("HX-Push-Url", url)
 }
 
 fun Context.unwrap() {
@@ -169,6 +182,18 @@ fun INPUT.onTypingPause(action: HTMXAction,
 fun HTMLTag.onKeypress(action: HTMXAction): HTMLTag {
     with (getRoute(action)) {
         return htmxOnEvent("keypress",
+            url(),
+            method = method,
+            swap = action.swap,
+            swapDelay = action.swapDelay,
+            target = action.target,
+            includeSelector = action.includeSelector)
+    }
+}
+
+fun HTMLTag.onKeyUp(action: HTMXAction): HTMLTag {
+    with (getRoute(action)) {
+        return htmxOnEvent("keyup",
             url(),
             method = method,
             swap = action.swap,

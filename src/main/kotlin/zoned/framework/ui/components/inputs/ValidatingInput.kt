@@ -11,6 +11,7 @@ import zoned.framework.ui.components.validation.errorClass
 import zoned.framework.ui.components.validation.errorMessage
 import zoned.framework.ui.layouts.ResponseContext
 import zoned.framework.ui.libs.HTMX.htmxOnEvent
+import zoned.framework.ui.libs.onKeyUp
 import zoned.framework.ui.libs.onKeypress
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.findAnnotation
@@ -26,7 +27,7 @@ class ValidatingInput(
     private val numeric: Boolean,
     private val autofocus: Boolean,
     private val keypressHandler: BaseRoute?,
-    private val keypressAction: HTMXAction?,
+    private val keyupAction: HTMXAction?,
     consumer: TagConsumer<*>): DIV(mapOf("class" to errorClass(classes, validation)), consumer) {
 
     fun FlowContent.render() {
@@ -63,8 +64,8 @@ class ValidatingInput(
                     autoFocus = true
                 }
 
-                if (this@ValidatingInput.keypressAction != null) {
-                    this@input.onKeypress(this@ValidatingInput.keypressAction)
+                if (this@ValidatingInput.keyupAction != null) {
+                    this@input.onKeyUp(this@ValidatingInput.keyupAction)
                 }
 
                 type = if (this@ValidatingInput.numeric) { InputType.number } else { InputType.text }
@@ -112,13 +113,13 @@ inline fun <reified T: FormObject> FlowContent.vinput2(
     classes: String = "",
     insetLeft: String? = null,
     numeric: Boolean = false,
-    keypressAction: HTMXAction? = null) {
+    keyupAction: HTMXAction? = null) {
 
     val formNameOverride = prop.findAnnotation<FormName>()
     val formName = formNameOverride?.name ?: prop.name
 
     ValidatingInput(classes, labelAndPlaceholder.label, labelAndPlaceholder.placeholder, formName, prop.get(entity)?.toString(),
-        validation?.validation(prop), insetLeft, numeric, false, null, keypressAction, consumer)
+        validation?.validation(prop), insetLeft, numeric, false, null, keyupAction, consumer)
         .visit {
             render()
         }
