@@ -87,8 +87,8 @@ class Configurator {
                 }
 
                 when {
-                    overrides.containsKey(method.name) -> {
-                        overrides[method.name]
+                    overrides.containsKey(propertyName) -> {
+                        overrides[propertyName]
                     }
                     // note: these have to be extension functions
                     interfaceMethods.containsKey(method.name) -> {
