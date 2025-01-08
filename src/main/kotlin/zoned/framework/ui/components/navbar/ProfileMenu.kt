@@ -16,7 +16,8 @@ class ProfileMenu(val user: Identity, val items: List<ProfileMenuItem>, consumer
                 attributes["aria-expanded"] = "false"
                 attributes["data-dropdown-toggle"] = "user-dropdown"
                 attributes["data-dropdown-placement"] = "bottom"
-                span("sr-only") { +"""Open user menu""" }
+                // TODO sr-only isn't working
+//                span("sr-only") { +"""Open user menu""" }
                 img(classes = "w-8 h-8 rounded-full") {
                     src = "/static/profile-picture-3.jpg"
                     alt = "user photo"

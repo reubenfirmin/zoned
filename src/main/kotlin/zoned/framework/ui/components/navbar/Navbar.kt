@@ -18,11 +18,12 @@ class Navbar(val classes: String,
     NAV(mapOf("class" to "w-screen bg-white border-gray-200 dark:bg-gray-900 $classes"), consumer) {
 
     fun render() {
-        div("flex flex-wrap items-center justify-between mx-auto p-4") {
+        div("flex items-center justify-between mx-auto p-4") {
             with (this@Navbar) {
                 logo(logoAction, logoText, logoImage)
 
-                mobileMenu("navbar-default")
+                // TODO fix whether this shows or not
+                //mobileMenu("navbar-default")
                 div("hidden w-full md:block md:w-auto") {
                     id = "navbar-default"
                     ul(

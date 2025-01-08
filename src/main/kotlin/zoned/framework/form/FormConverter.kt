@@ -72,10 +72,11 @@ class FormConverter {
                 if (composite != null) {
                     argMap[it.name!!] = composite
                 }
+                // TODO just check argMap throughout??
                 matchingParams.add(it)
             }
         }
-
+        // TODO are generators useful? maybe drop
         // now supply any with generators
         constructor.parameters.filterNot {
             it in matchingParams
@@ -85,6 +86,15 @@ class FormConverter {
                 argMap[it.name!!] = generated
             }
             matchingParams.add(it)
+        }
+
+        // set any missing booleans to false
+        constructor.parameters.filterNot {
+            it.name in argMap.keys
+        }.filter {
+            it.type.classifier == Boolean::class
+        }.forEach {
+            argMap[it.name!!] = false
         }
 
         // which params were not resolved?
@@ -246,7 +256,7 @@ class FormConverter {
      * Handle types that can't be empty strings
      */
     fun String?.convertNonEmptyType(type: KType, parameter: KParameter): Any? {
-        val toConvert = if (this.isNullOrEmpty()) { null } else { this }
+        val toConvert = this
         val clzz = type.classifier as KClass<*>
         return when {
             clzz == Int::class -> toConvert?.toIntOrNull()
@@ -256,6 +266,7 @@ class FormConverter {
                 // handle html checkboxes :grimace:
                 when (toConvert) {
                     "on" -> true
+                    "" -> true
                     null -> false
                     else -> null
                 }

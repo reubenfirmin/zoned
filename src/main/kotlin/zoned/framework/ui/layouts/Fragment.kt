@@ -8,6 +8,7 @@ import kotlinx.html.stream.appendHTML
 import zoned.framework.api.AuxResponse
 import zoned.framework.api.ElementType
 import zoned.framework.api.Response
+import zoned.framework.api.ResponseType
 import zoned.framework.ui.components.buttons.WithFlowbiteAttributes
 import zoned.framework.ui.components.buttons.WithSubmitAction
 import zoned.framework.ui.components.html
@@ -15,6 +16,7 @@ import zoned.framework.ui.libs.Bundle.bundleInit
 import zoned.framework.ui.libs.HTMX.htmxBoost
 import zoned.framework.ui.libs.isDynamic
 import zoned.framework.ui.libs.setHistory
+import zoned.framework.util.Either
 
 // XXX split this up / organize better
 object Fragment {
@@ -73,7 +75,7 @@ object Fragment {
         } else {
             html
         }
-        return Response(fragment, target, unwrap = mutateHtml == null)
+        return Response(Either.left(fragment), target, unwrap = mutateHtml == null)
     }
 
     fun Context.page(template: PageTemplate, title: String, blocks: List<html.() -> Unit>): Response {
@@ -83,7 +85,7 @@ object Fragment {
         val bodyTarget = HTMXTarget("body")
 
         setHistory()
-        return Response(writePage {
+        return Response(Either.left(writePage {
             head {
                 title(title)
                 with (template) {
@@ -99,7 +101,11 @@ object Fragment {
                 htmxBoost()
                 template.bodyContent(this@page, this, blocks)
             }
-        }, if (isDynamic()) { bodyTarget } else { null }, unwrap = false)
+        }), if (isDynamic()) { bodyTarget } else { null }, unwrap = false)
+    }
+
+    fun Context.toJson(response: Any): Response {
+        return Response(Either.right(response), type = ResponseType.JSON)
     }
 
     private fun html.applyOob(resp: AuxResponse, tag: CommonAttributeGroupFacade, ctx: Context) {

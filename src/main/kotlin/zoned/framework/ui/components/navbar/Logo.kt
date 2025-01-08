@@ -6,7 +6,7 @@ import zoned.framework.ui.components.html
 import zoned.framework.ui.libs.onClick
 
 class Logo(val action: HTMXAction, val text: String, val image: html.() -> Unit, consumer : TagConsumer<*>): A(mapOf("class" to
-        "bg-white border-gray-200 dark:bg-gray-900"), consumer) {
+        "bg-white border-gray-200 dark:bg-gray-900 flex gap-4"), consumer) {
 
     fun render() {
         onClick(action)

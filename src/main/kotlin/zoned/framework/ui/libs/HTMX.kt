@@ -13,6 +13,7 @@ import zoned.framework.ui.components.buttons.HTMXAction
 import zoned.framework.ui.layouts.HTMXTarget
 import zoned.framework.ui.libs.HTMX.Swap.*
 import zoned.framework.ui.libs.HTMX.htmxOnEvent
+import zoned.framework.util.Either
 import kotlin.reflect.KFunction
 import kotlin.reflect.KFunction1
 import kotlin.reflect.KFunction2
@@ -110,11 +111,9 @@ fun Context.unwrap() {
     header("HX-Reselect", ".wrapper > *")
 }
 
-fun Context.redirect(location: String, external: Boolean): Response {
-    if (external) {
-        header("HX-Redirect", location)
-    }
-    return Response("", redirect = true)
+fun Context.redirectExternal(location: String): Response {
+    header("HX-Redirect", location)
+    return Response(Either.left(""), redirect = true)
 }
 
 fun Context.isDynamic() = headerMap().containsKey("hx-request") || headerMap().containsKey("HX-Request")
@@ -125,9 +124,12 @@ private fun getRoute(action: HTMXAction): Route {
     }
 }
 
-fun HTMLTag.onLoad(action: HTMXAction): HTMLTag {
+fun HTMLTag.onLoad(action: HTMXAction, delayMs: Int? = null): HTMLTag {
     with (getRoute(action)) {
-        return htmxOnEvent("load", url(), method = method)
+        val delayStr = delayMs?.let {
+            " delay:" + it.toString() + "ms"
+        } ?: ""
+        return htmxOnEvent("load$delayStr", url(), method = method)
     }
 }
 

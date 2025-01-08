@@ -3,6 +3,7 @@ package zoned.framework.api
 import io.javalin.http.Context
 import io.javalin.http.HandlerType
 import zoned.framework.ui.libs.location
+import zoned.framework.util.Either
 import java.net.URI
 import java.util.*
 
@@ -26,7 +27,7 @@ fun Context.redirect(route: Route): Response {
     } else {
         redirect(route.url())
     }
-    return Response("")
+    return Response(Either.left(""))
 }
 
 fun Context.locale(): Locale {
