@@ -168,7 +168,8 @@ private fun KFunction<*>.toIdentifier(): MethodIdentifier {
     val javaMethod = this.javaMethod!!
     val declaringClass = when {
         // used when looking up a method reference
-        this is CallableReference -> (this as CallableReference).boundReceiver::class.java
+        this     is CallableReference && (this as CallableReference).boundReceiver != CallableReference.NO_RECEIVER ->
+            (this as CallableReference).boundReceiver::class.java
         // used when reflecting over methods on a class
         this.parameters.isNotEmpty() && this.parameters[0].kind == KParameter.Kind.INSTANCE -> this.parameters[0].type.javaType as Class<*>
         else -> throw Exception("Missing branch; assumption was methods should either be a callable reference or have a receiver")

@@ -98,6 +98,7 @@ inline fun <reified T: FormObject> FlowContent.vinput(
                     labelAndPlaceholder: LabelAndPlaceHolder,
                     prop: KProperty1<T, *>,
                     resp: ResponseContext<T>,
+                    defaultValue: String? = null,
                     insetLeft: String? = null,
                     numeric: Boolean = false,
                     keypressHandler: BaseRoute? = null) {
@@ -111,6 +112,7 @@ inline fun <reified T: FormObject> FlowContent.vinput2(
     validation: FormValidation<T>?,
     entity: T,
     classes: String = "",
+    defaultValue: String? = null,
     insetLeft: String? = null,
     numeric: Boolean = false,
     keyupAction: HTMXAction? = null) {
