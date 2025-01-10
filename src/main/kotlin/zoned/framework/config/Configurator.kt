@@ -31,8 +31,12 @@ interface DBConfig: Config {
     @Env("DB_HOST") val dbHost: String
     @Env("DB_PORT") val dbPort: String
     @Env("DB_NAME") val dbName: String
-
 }
+interface SQLliteDBConfig: Config {
+    @Env("DB_PATH") val dbPath: String
+}
+
+// XXX this is postgres specific, clean up
 fun DBConfig.dbUrl() = "jdbc:postgresql://$dbHost:$dbPort/$dbName"
 
 interface EnvironmentConfig: Config {

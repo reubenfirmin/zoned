@@ -30,6 +30,7 @@ dependencies {
     api(kotlin("stdlib"))
     api("org.jetbrains.kotlinx:kotlinx-html:0.9.1")
     api("org.postgresql:postgresql:${Versions.postgres}")
+    implementation("org.xerial:sqlite-jdbc:3.47.2.0")
     api("io.javalin:javalin:${Versions.javalin}")
     api("org.jooq:jooq:${Versions.jooq}")
     api("org.jooq:jooq-kotlin:${Versions.jooq}")

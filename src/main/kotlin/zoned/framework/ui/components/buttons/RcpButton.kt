@@ -136,6 +136,8 @@ data object WithNoAction: ButtonAction()
 
 data object WithSubmitAction: ButtonAction()
 
+data class WithLinkAction(val link: String): ButtonAction()
+
 enum class ButtonType(val classes: String) {
     /** A cta, form submit, etc. There should generally only be one of these on a page */
     PRIMARY(primaryClasses),
