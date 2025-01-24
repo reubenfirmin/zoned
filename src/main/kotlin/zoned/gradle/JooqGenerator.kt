@@ -1,10 +1,9 @@
-package org.example.zoned.gradle
+package zoned.gradle
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
 import org.jooq.codegen.GenerationTool
 import org.jooq.meta.jaxb.*
-import zoned.gradle.DatabaseSetup
 import java.io.File
 
 open class JooqGenerator : DefaultTask() {

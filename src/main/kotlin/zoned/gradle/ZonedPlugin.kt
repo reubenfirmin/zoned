@@ -1,8 +1,5 @@
 package zoned.gradle
 
-import org.example.zoned.gradle.DatabaseCleaner
-import org.example.zoned.gradle.DatabaseMigrator
-import org.example.zoned.gradle.JooqGenerator
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
