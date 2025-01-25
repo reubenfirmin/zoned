@@ -10,6 +10,7 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+    mavenLocal()
 }
 
 node {
@@ -28,6 +29,7 @@ object Versions {
 
 dependencies {
     api(kotlin("stdlib"))
+    implementation("zoned:zoned-js:1.0-SNAPSHOT")
     api("org.jetbrains.kotlinx:kotlinx-html:0.9.1")
     api("org.postgresql:postgresql:${Versions.postgres}")
     api("io.javalin:javalin:${Versions.javalin}")
@@ -77,8 +79,7 @@ java {
 
 val generateTailwindCss by tasks.registering(com.github.gradle.node.npm.task.NpxTask::class) {
     dependsOn(tasks.processResources)
-
-    command.set("tailwindcss")
+    command.set("@tailwindcss/cli")
     args.set(listOf(
         "-i", "src/main/resources/input.css",
         "-o", "$buildDir/resources/main/library-styles.css"
