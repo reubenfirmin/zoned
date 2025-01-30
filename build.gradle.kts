@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm") version "2.1.0"
     id("com.github.node-gradle.node") version "7.0.1"
     `maven-publish`
     `java-gradle-plugin`
@@ -22,13 +22,13 @@ object Versions {
     val postgres = "42.5.1"
     val jackson = "2.15.2"
     val jooq = "3.18.6"
-    val kotlinWrappers = "1.0.0-pre.661"
     val flyway = "9.20.1"
     val javalin = "6.1.3"
 }
 
 dependencies {
     api(kotlin("stdlib"))
+    // TODO maybe not needed
     implementation("zoned:zoned-js:1.0-SNAPSHOT")
     api("org.jetbrains.kotlinx:kotlinx-html:0.9.1")
     api("org.postgresql:postgresql:${Versions.postgres}")
