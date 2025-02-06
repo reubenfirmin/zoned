@@ -31,8 +31,12 @@ interface DBConfig: Config {
     @Env("DB_HOST") val dbHost: String
     @Env("DB_PORT") val dbPort: String
     @Env("DB_NAME") val dbName: String
-
 }
+interface SQLliteDBConfig: Config {
+    @Env("DB_PATH") val dbPath: String
+}
+
+// XXX this is postgres specific, clean up
 fun DBConfig.dbUrl() = "jdbc:postgresql://$dbHost:$dbPort/$dbName"
 
 interface EnvironmentConfig: Config {
@@ -56,8 +60,12 @@ class Configurator {
          * give up and complain
          */
         private fun env(key: String): String = System.getenv(key)
-            ?: dotenv[key]
-            ?: throw Exception("$key not found in environment or .env file")
+            ?: try {
+                dotenv[key]
+            } catch (e: Exception) {
+                throw Exception("$key not found in env and .env file doesn't exist")
+            }
+            ?: throw Exception("$key not found in env or .env file")
 
         inline fun <reified T : Config> load(overrides: Map<String, Any> = mapOf()): T = load(T::class, overrides)
 

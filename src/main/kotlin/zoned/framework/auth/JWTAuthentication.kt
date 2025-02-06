@@ -31,6 +31,7 @@ class JWTAuthentication @Inject constructor(@Named(Bindings.JWT_SECRET) jwtSecre
     private val anon = AuthUser(null, ANON)
 
     fun issue(person: Person): String {
+
         return JWT.create()
             .withIssuer("auth0")
             .withExpiresAt(Date().toInstant().plusSeconds(86400))
@@ -70,14 +71,14 @@ class JWTAuthentication @Inject constructor(@Named(Bindings.JWT_SECRET) jwtSecre
         }
     }
 
-    fun createExpiringToken(claims: Map<String, String>): String {
+    fun createExpiringToken(claims: Map<String, String>, expiry: Int = 86400): String {
         return JWT.create()
             .withIssuer("auth0").apply {
                 claims.forEach {
                     withClaim(it.key, it.value)
                 }
             }
-            .withExpiresAt(Date().toInstant().plusSeconds(86400))
+            .withExpiresAt(Date().toInstant().plusSeconds(expiry.toLong()))
             .sign(algorithm)
     }
 
