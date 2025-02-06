@@ -1,4 +1,4 @@
-package org.example.zoned.gradle
+package zoned.gradle
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
