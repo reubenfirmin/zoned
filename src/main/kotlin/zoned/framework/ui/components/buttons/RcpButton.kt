@@ -79,14 +79,14 @@ object ButtonClasses {
             "focus:z-10 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 " +
             "dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white " +
             "dark:hover:bg-gray-700"
-    const val highlight1Classes = "text-white bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 " +
+    const val highlight1Classes = "text-white bg-opacity-100 bg-blue-600 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 " +
             "hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-blue-300 " +
             "dark:focus:ring-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
     const val highlight2Classes = "text-white bg-gradient-to-r from-green-400 via-green-500 to-green-600 " +
             "hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-green-300 " +
             "dark:focus:ring-green-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center"
     const val iconButtonClasses = "flex items-center justify-center text-white hover:bg-primary-800 " +
-            "focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-4 py-2 " +
+                   "focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-4 py-2 " +
             "dark:hover:bg-primary-700 focus:outline-none dark:focus:ring-primary-800"
     const val dropdownComponentClasses = "w-full md:w-auto flex items-center justify-center py-2 px-4 text-sm " +
             "font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 " +

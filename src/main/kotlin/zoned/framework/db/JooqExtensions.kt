@@ -28,3 +28,7 @@ inline fun <reified T> SelectConditionStep<Record1<T?>>.all(): List<T> {
 fun InsertResultStep<Record1<UUID?>>.id(): UUID? {
     return fetchOneInto(UUID::class.java)
 }
+
+fun InsertResultStep<Record1<String?>>.idStr(): String? {
+    return fetchOneInto(String::class.java)
+}

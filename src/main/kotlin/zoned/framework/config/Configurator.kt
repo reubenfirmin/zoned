@@ -60,8 +60,12 @@ class Configurator {
          * give up and complain
          */
         private fun env(key: String): String = System.getenv(key)
-            ?: dotenv[key]
-            ?: throw Exception("$key not found in environment or .env file")
+            ?: try {
+                dotenv[key]
+            } catch (e: Exception) {
+                throw Exception("$key not found in env and .env file doesn't exist")
+            }
+            ?: throw Exception("$key not found in env or .env file")
 
         inline fun <reified T : Config> load(overrides: Map<String, Any> = mapOf()): T = load(T::class, overrides)
 
