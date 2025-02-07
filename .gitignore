@@ -43,3 +43,6 @@ bin/
 
 .kotlin
 .idea
+
+package.json
+package-lock.json

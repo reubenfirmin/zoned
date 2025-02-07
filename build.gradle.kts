@@ -1,4 +1,4 @@
-plugins {
+                    plugins {
     kotlin("jvm") version "2.1.0"
     id("com.github.node-gradle.node") version "7.0.1"
     `maven-publish`
@@ -11,6 +11,7 @@ version = "1.0-SNAPSHOT"
 repositories {
     mavenCentral()
     mavenLocal()
+    gradlePluginPortal()
 }
 
 node {
@@ -28,11 +29,9 @@ object Versions {
 
 dependencies {
     api(kotlin("stdlib"))
-    // TODO maybe not needed
-    implementation("zoned:zoned-js:1.0-SNAPSHOT")
     api("org.jetbrains.kotlinx:kotlinx-html:0.9.1")
     api("org.postgresql:postgresql:${Versions.postgres}")
-    implementation("org.xerial:sqlite-jdbc:3.47.2.0")
+    api("org.xerial:sqlite-jdbc:3.47.2.0")
     api("io.javalin:javalin:${Versions.javalin}")
     api("org.jooq:jooq:${Versions.jooq}")
     api("org.jooq:jooq-kotlin:${Versions.jooq}")
@@ -57,10 +56,11 @@ dependencies {
     api("dev.misfitlabs.kotlinguice4:kotlin-guice:3.0.0")
     api("com.postmarkapp:postmark:1.11.1")
 
-    implementation("org.jooq:jooq-meta:${Versions.jooq}")
-    implementation("org.jooq:jooq-codegen:${Versions.jooq}")
+    api("org.jooq:jooq-meta:${Versions.jooq}")
+    api("org.jooq:jooq-codegen:${Versions.jooq}")
     implementation(gradleApi())
     implementation(kotlin("gradle-plugin"))
+    implementation("com.github.node-gradle:gradle-node-plugin:7.1.0")
 
     testImplementation(kotlin("test"))
 }
@@ -76,22 +76,6 @@ kotlin {
 java {
     withSourcesJar()
     withJavadocJar()
-}
-
-val generateTailwindCss by tasks.registering(com.github.gradle.node.npm.task.NpxTask::class) {
-    dependsOn(tasks.processResources)
-    command.set("@tailwindcss/cli")
-    args.set(listOf(
-        "-i", "src/main/resources/input.css",
-        "-o", "$buildDir/resources/main/library-styles.css"
-    ))
-
-    inputs.files(fileTree("src/main/kotlin"))
-    outputs.file("$buildDir/resources/main/library-styles.css")
-}
-
-tasks.jar {
-    dependsOn(generateTailwindCss)
 }
 
 gradlePlugin {
@@ -111,11 +95,5 @@ publishing {
     }
     repositories {
         mavenLocal()
-    }
-}
-
-afterEvaluate {
-    tasks.named<PluginUnderTestMetadata>("pluginUnderTestMetadata") {
-        pluginClasspath.from(tasks.named("generateTailwindCss"))
     }
 }
