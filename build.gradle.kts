@@ -78,36 +78,6 @@ java {
     withJavadocJar()
 }
 
-tasks.register<com.github.gradle.node.npm.task.NpmTask>("installTailwind") {
-    args.set(listOf("install", "@tailwindcss/cli@4.0.4"))
-    doFirst {
-        file("package.json").takeIf { !it.exists() }?.writeText("""
-            {
-              "name": "${project.name}",
-              "version": "${project.version}",
-              "private": true
-            }
-        """.trimIndent())
-    }
-}
-
-val generateTailwindCss by tasks.registering(com.github.gradle.node.npm.task.NpxTask::class) {
-    dependsOn(tasks.named("installTailwind"))
-    dependsOn(tasks.processResources)
-    command.set("@tailwindcss/cli")
-    args.set(listOf(
-        "-i", "src/main/resources/input.css",
-        "-o", "$buildDir/resources/main/library-styles.css"
-    ))
-
-    inputs.files(fileTree("src/main/kotlin"))
-    outputs.file("$buildDir/resources/main/library-styles.css")
-}
-
-tasks.jar {
-    dependsOn(generateTailwindCss)
-}
-
 gradlePlugin {
     plugins {
         create("zonedPlugin") {

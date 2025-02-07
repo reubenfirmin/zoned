@@ -5,7 +5,6 @@ import org.gradle.api.Project
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.tasks.bundling.Tar
 import org.gradle.api.tasks.bundling.Zip
-import zoned.framework.gradle.BuildStyleTask
 
 class ZonedPlugin : Plugin<Project> {
 
