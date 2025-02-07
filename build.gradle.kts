@@ -97,9 +97,3 @@ publishing {
         mavenLocal()
     }
 }
-
-afterEvaluate {
-    tasks.named<PluginUnderTestMetadata>("pluginUnderTestMetadata") {
-        pluginClasspath.from(tasks.named("generateTailwindCss"))
-    }
-}

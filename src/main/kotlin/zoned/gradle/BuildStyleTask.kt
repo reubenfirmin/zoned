@@ -5,6 +5,7 @@ import org.gradle.api.file.ProjectLayout
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.*
 import com.github.gradle.node.npm.task.NpxTask
+import org.gradle.api.DefaultTask
 import java.io.File
 import javax.inject.Inject
 import org.gradle.api.logging.LogLevel
@@ -13,7 +14,7 @@ import org.gradle.api.logging.configuration.ShowStacktrace
 
 abstract class BuildStyleTask @Inject constructor(
     private val layout: ProjectLayout
-) : NpxTask() {
+) : DefaultTask() {
 
     @get:OutputDirectory
     abstract val librarySrcDir: DirectoryProperty
@@ -28,9 +29,9 @@ abstract class BuildStyleTask @Inject constructor(
     @get:OutputFile
     abstract val outputFile: RegularFileProperty
 
-    init {
-        command.set("@tailwindcss/cli")
+    private lateinit var npxTask: NpxTask
 
+    init {
         // Set up default file locations
         val projectDir = layout.projectDirectory
         inputCssFile.convention(projectDir.file("src/jvmMain/resources/style.css"))
@@ -38,14 +39,32 @@ abstract class BuildStyleTask @Inject constructor(
         outputFile.convention(projectDir.file("dist/output.css"))
         librarySrcDir.convention(layout.buildDirectory.dir("tmp/library-src"))
 
-        project.tasks.findByName("jsPackageJson")?.let {
-            dependsOn(it)
-        }
-
-        setupTailwind()
+        // This task should run after build
+        dependsOn("build")
     }
 
-    fun setupTailwind() {
+    @TaskAction
+    fun execute() {
+        setupNpxTask()
+        setupTailwind()
+        npxTask.exec()
+    }
+
+    private fun setupNpxTask() {
+        npxTask = project.tasks.create("buildStyleNpx", NpxTask::class.java)
+        npxTask.command.set("@tailwindcss/cli")
+
+        // Set up NODE_PATH
+        val jsDir = project.layout.buildDirectory.dir("js/node_modules").get().asFile
+        if (!jsDir.exists()) {
+            throw Exception("Need to build before running build-style")
+        }
+        npxTask.environment.set(mapOf(
+            "NODE_PATH" to project.rootDir.toPath().relativize(jsDir.toPath()).toString()
+        ))
+    }
+
+    private fun setupTailwind() {
         logger.lifecycle("Running tailwind!")
         // Create temp file in project root
         val tempInputFile = layout.projectDirectory.file(".temp.css").asFile
@@ -73,13 +92,7 @@ abstract class BuildStyleTask @Inject constructor(
             }
         }
 
-        val jsDir = project.layout.buildDirectory.dir("js/node_modules").get().asFile
-        if (!jsDir.exists()) {
-            throw Exception("Need to build before running build-style")
-        }
-
         val inputCss = inputCssFile.get().asFile.readText()
-        environment.set(mapOf("NODE_PATH" to project.rootDir.toPath().relativize(jsDir.toPath()).toString()))
 
         if (inputCss.contains("@zoned")) {
             println("Replacing @zoned token")
@@ -90,7 +103,7 @@ abstract class BuildStyleTask @Inject constructor(
             val sourceDirectives = listOf(
                 "src/jvmMain/kotlin/",
                 "src/jsMain/kotlin/",
-                "build/tmp/library-src", // TODO just use library source dir from above?
+                "build/tmp/library-src",
                 "build/js/node_modules/flowbite/"
             ).joinToString("\n") { "@source \"$it\";" }
 
@@ -105,7 +118,7 @@ abstract class BuildStyleTask @Inject constructor(
         }
 
         // Set up the args for the npx command
-        args.set(listOf(
+        npxTask.args.set(listOf(
             "-i", if (inputCss.contains("@zoned")) {
                 tempInputFile.absolutePath
             } else {
@@ -114,15 +127,7 @@ abstract class BuildStyleTask @Inject constructor(
             "-o", outputFile.asFile.get().absolutePath
         ))
 
-        println("${command.get()} ${args.get()} ${environment.get()}}")
-
-        // Execute the command first
-        super.exec()
-//
-//        // Only clean up if we succeeded
-//        if (tempInputFile.exists()) {
-//            tempInputFile.delete()
-//        }
+        println("${npxTask.command.get()} ${npxTask.args.get()} ${npxTask.environment.get()}}")
     }
 
     @InputFiles
