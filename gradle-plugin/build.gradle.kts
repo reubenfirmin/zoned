@@ -14,6 +14,7 @@ dependencies {
     implementation("org.flywaydb:flyway-core:${Versions.flyway}")
     implementation("com.zaxxer:HikariCP:${Versions.hikari}")
     implementation("org.xerial:sqlite-jdbc:${Versions.sqlite}")
+    implementation("org.postgresql:postgresql:${Versions.postgres}")
     implementation("io.github.cdimascio:dotenv-kotlin:${Versions.dotenv}")
 }
 
