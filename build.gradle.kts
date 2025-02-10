@@ -1,14 +1,13 @@
-import org.jetbrains.kotlin.gradle.dsl.JsModuleKind
-import org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile
-
 plugins {
     kotlin("multiplatform")
     kotlin("plugin.serialization")
     id("maven-publish")
 }
 
-group = "io.4rc"
-version = "1.0-SNAPSHOT"
+allprojects {
+    group = "io.4rc"
+    version = "1.0-SNAPSHOT"
+}
 
 kotlin {
     jvmToolchain(21)
@@ -28,16 +27,6 @@ kotlin {
         nodejs()
         binaries.executable()
     }
-//
-//    targets.all {
-//        compilations.all {
-//            compileTaskProvider.configure {
-//                compilerOptions {
-//                    freeCompilerArgs.add("-Xexport-kdoc")
-//                }
-//            }
-//        }
-//    }
 
     sourceSets {
         val commonMain by getting {
@@ -113,29 +102,29 @@ kotlin {
         }
     }
 }
-
-tasks.named("compileKotlinJs", Kotlin2JsCompile::class.java) {
-    compilerOptions {
-        moduleKind.set(JsModuleKind.MODULE_COMMONJS)
-    }
-}
-
-tasks {
-    withType<Jar> {
-        duplicatesStrategy = DuplicatesStrategy.INCLUDE
-    }
-}
-
-publishing {
-    publications.all {
-        // Suppress the automatic plugin publication
-        if (name == "pluginMaven") {
-            tasks.withType<AbstractPublishToMaven>()
-                .matching { it.publication == this }
-                .configureEach { enabled = false }
-        }
-    }
-    repositories {
-        mavenLocal()
-    }
-}
+//
+//tasks.named("compileKotlinJs", Kotlin2JsCompile::class.java) {
+//    compilerOptions {
+//        moduleKind.set(JsModuleKind.MODULE_COMMONJS)
+//    }
+//}
+//
+//tasks {
+//    withType<Jar> {
+//        duplicatesStrategy = DuplicatesStrategy.INCLUDE
+//    }
+//}
+//
+//publishing {
+//    publications.all {
+//        // Suppress the automatic plugin publication
+//        if (name == "pluginMaven") {
+//            tasks.withType<AbstractPublishToMaven>()
+//                .matching { it.publication == this }
+//                .configureEach { enabled = false }
+//        }
+//    }
+//    repositories {
+//        mavenLocal()
+//    }
+//}
