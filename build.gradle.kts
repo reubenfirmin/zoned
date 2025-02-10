@@ -40,7 +40,7 @@ kotlin {
         val jvmMain by getting {
             dependencies {
                 api("org.postgresql:postgresql:${Versions.postgres}")
-                api("org.xerial:sqlite-jdbc:${Versions.sqlite}")
+                                                    api("org.xerial:sqlite-jdbc:${Versions.sqlite}")
                 api("io.javalin:javalin:${Versions.javalin}")
                 api("org.jooq:jooq:${Versions.jooq}")
                 api("org.jooq:jooq-kotlin:${Versions.jooq}")
@@ -77,8 +77,8 @@ kotlin {
                 api(npm("tailwindcss", "4.0.4"))
                 api(npm("@tailwindcss/cli", "4.0.4"))
                 api(npm("sortablejs", "1.15.1"))
-                api(npm("flowbite", "2.4.1"))
-                api(npm("htmx.org", "2.0.1"))
+                api(npm("flowbite", "3.1.2"))
+                api(npm("htmx.org", "2.0.4"))
                 api(npm("ace-builds", "1.30.0"))
                 api(npm("file-loader", "6.2.0"))
                 api(npm("path-browserify", "1.0.1"))
@@ -92,6 +92,10 @@ kotlin {
                 api(npm("microlight", "0.0.7"))
                 api(npm("leaflet", "1.9.4"))
                 api(npm("nomnoml", "1.6.2"))
+                api(npm("svgmap", "^2.7.1"))
+                api(npm("@popperjs/core", "^2.10.2"))
+                api(npm("apexcharts", "^3.48.0"))
+                api(npm("prismjs", "^1.25.0"))
             }
         }
 

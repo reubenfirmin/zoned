@@ -1,0 +1,37 @@
+fun makeSortable(columnId: String, group: String, dragClass: String, ghostClass: String, callbackUrl: String) {
+    val element = document.getElementById(columnId)
+    if (element == null) {
+        throw Exception("Couldn't find element $columnId")
+    } else {
+        fun onEnd(event: DragEvent) {
+            // we could just JSON a data class directly...except that this one has Element properties, which
+            // don't serialize
+            val sendable = json("itemId" to event.item.id,
+                                "to" to event.to.id,
+                                "from" to event.from.id,
+                                "newIndex" to event.newIndex,
+                                "oldIndex" to event.oldIndex)
+
+            // we could also use htmx for this
+            window.fetch(callbackUrl, RequestInit(
+                method = "POST",
+                headers = json("Content-Type" to "application/json"),
+                body = JSON.stringify(sendable)
+            )).then {
+               println("Do something!")
+            }
+        }
+
+        val myOptions: SortableOptions = jso {
+            this.group = group
+            animation = 100
+            forceFallback = true
+            this.dragClass = dragClass
+            this.ghostClass = ghostClass
+            easing = "cubic-bezier(0, 0.55, 0.45, 1)"
+            this.onEnd = ::onEnd
+        }
+
+        Sortable.create(element, myOptions)
+    }
+}

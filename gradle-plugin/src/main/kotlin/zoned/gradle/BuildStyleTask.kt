@@ -39,8 +39,8 @@ abstract class BuildStyleTask @Inject constructor(
         outputFile.convention(projectDir.file("dist/output.css"))
         librarySrcDir.convention(layout.buildDirectory.dir("tmp/library-src"))
 
-        // This task should run after build
-        dependsOn("build")
+        // we had "build" here, but that's too heavyweight if there are tests
+        dependsOn("kotlinNpmInstall")
     }
 
     @TaskAction
