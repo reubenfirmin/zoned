@@ -4,9 +4,6 @@ plugins {
     `maven-publish`
 }
 
-group = "io.4rc"
-version = "1.0-SNAPSHOT"
-
 dependencies {
     implementation(gradleApi())
     implementation(kotlin("gradle-plugin"))
