@@ -10,7 +10,7 @@ open class DatabaseCleaner : DefaultTask() {
     fun clean() {
         val setup = DatabaseSetup(logger)
         println("WARNING - cleaning")
-        setup.getFlyway(project, false).clean()
+        setup.getFlyway(project, false, "").clean()
     }
 
 }
