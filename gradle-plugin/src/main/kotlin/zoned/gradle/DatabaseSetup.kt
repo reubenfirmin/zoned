@@ -13,15 +13,14 @@ class DatabaseSetup(val logger: Logger) {
 
     val config = Config()
 
-    fun getFlyway(project: Project, cleanDisabled: Boolean): Flyway {
+    fun getFlyway(project: Project, cleanDisabled: Boolean, path: String): Flyway {
         val dataSource = getDataSource(project.rootDir)
 
         val config = org.flywaydb.core.api.configuration.FluentConfiguration()
             .dataSource(dataSource)
             .cleanDisabled(cleanDisabled)
-            // TODO probably a direct way to get this
             // TODO will this work with jar deploys??
-            .locations("filesystem:${project.rootDir.absolutePath}/src/jvmMain/resources/db/migration")
+            .locations("filesystem:${path}")
 
         return Flyway(config)
     }
