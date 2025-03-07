@@ -23,7 +23,7 @@ open class JooqGenerator : DefaultTask() {
                 .withGenerator(
                     Generator()
                         .withDatabase(database(config))
-                        .withName("org.jooq.codegen.KotlinGenerator")
+                        .withName("zoned.gradle.generation.EntityKotlinGenerator")
                         .withGenerate(
                             Generate()
                                 .withPojos(true)
@@ -38,7 +38,7 @@ open class JooqGenerator : DefaultTask() {
                                 .withImmutablePojos(true)
                         )
                         .withStrategy(Strategy().apply {
-                            withName("zoned.gradle.generation.RenamingStrategy")
+                            withName("zoned.gradle.generation.EntityGenerationStrategy")
                         })
                         .withTarget(org.jooq.meta.jaxb.Target()
                             .withPackageName("${modelPackage}.jooq")
