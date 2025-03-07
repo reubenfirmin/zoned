@@ -52,9 +52,11 @@ open class JooqGenerator : DefaultTask() {
 
     private fun jdbc(config: Config): Jdbc {
         return if (config.dbPath != null) {
+            val dbFile = project.file(config.dbPath).absolutePath
+
             Jdbc()
                 .withDriver("org.sqlite.JDBC")
-                .withUrl("jdbc:sqlite:${config.dbPath}")
+                .withUrl("jdbc:sqlite:${dbFile}")
         } else {
             Jdbc()
                 .withDriver("org.postgresql.Driver")
@@ -74,10 +76,12 @@ open class JooqGenerator : DefaultTask() {
 
     private fun database(config: Config): Database {
         return if (config.dbPath != null) {
+            logger.info("Introspecting sqllite database")
             Database()
                 .withName(suppressor(config))
                 .withIncludes(".*")
         } else {
+            logger.info("Introspecting postgres database")
             Database()
                 .withName(suppressor(config))
                 .withIncludes(".*")
