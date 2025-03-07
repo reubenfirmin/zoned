@@ -1,4 +1,4 @@
-package zoned.gradle
+package zoned.gradle.generation
 
 import org.gradle.configurationcache.extensions.capitalized
 import org.jooq.codegen.DefaultGeneratorStrategy

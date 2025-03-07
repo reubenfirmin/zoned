@@ -1,4 +1,4 @@
-package zoned.gradle
+package zoned.gradle.generation
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
@@ -38,7 +38,7 @@ open class JooqGenerator : DefaultTask() {
                                 .withImmutablePojos(true)
                         )
                         .withStrategy(Strategy().apply {
-                            withName("zoned.gradle.RenamingStrategy")
+                            withName("zoned.gradle.generation.RenamingStrategy")
                         })
                         .withTarget(org.jooq.meta.jaxb.Target()
                             .withPackageName("${modelPackage}.jooq")
@@ -68,9 +68,9 @@ open class JooqGenerator : DefaultTask() {
 
     private fun suppressor(config: Config): String {
         return if (config.dbPath != null) {
-            "zoned.gradle.DefaultSuppressingSqlliteConfig"
+            "zoned.gradle.generation.DefaultSuppressingSqlliteConfig"
         } else {
-            "zoned.gradle.DefaultSuppressingPostgresConfig"
+            "zoned.gradle.generation.DefaultSuppressingPostgresConfig"
         }
     }
 

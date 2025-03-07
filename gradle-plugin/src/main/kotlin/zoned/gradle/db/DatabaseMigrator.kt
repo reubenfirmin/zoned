@@ -1,7 +1,6 @@
-package zoned.gradle
+package zoned.gradle.db
 
 import org.gradle.api.DefaultTask
-import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 import zoned.gradle.DatabaseSetup
 
