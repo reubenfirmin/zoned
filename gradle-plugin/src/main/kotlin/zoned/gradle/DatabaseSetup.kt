@@ -13,19 +13,22 @@ class DatabaseSetup(val logger: Logger) {
 
     val config = Config()
 
-    fun getFlyway(project: Project, cleanDisabled: Boolean, path: String): Flyway {
+    fun getFlyway(project: Project, cleanDisabled: Boolean, path: String? = null): Flyway {
         val dataSource = getDataSource(project.rootDir)
 
         val config = org.flywaydb.core.api.configuration.FluentConfiguration()
             .dataSource(dataSource)
             .cleanDisabled(cleanDisabled)
+
+        if (path != null) {
             // TODO will this work with jar deploys??
-            .locations("filesystem:${path}")
+            config.locations("filesystem:${path}")
+        }
 
         return Flyway(config)
     }
 
-    private fun getDataSource(baseDir: File): DataSource {
+    fun getDataSource(baseDir: File): DataSource {
         return if (config.dbPath != null) {
             logger.info("Migrating SQLLite db; using ")
             val ds = org.sqlite.SQLiteDataSource()

@@ -13,15 +13,43 @@ class PatchedDataType(
 ) : InvocationHandler {
 
     override fun invoke(proxy: Any, method: Method, args: Array<Any>?): Any? {
-        val result = method.invoke(original, *(args ?: emptyArray()))
+        val methodName = method.name
+        val type = original.type
+        val isDecimal = type.equals("decimal", ignoreCase = true) ||
+                type.equals("numeric", ignoreCase = true) ||
+                type.equals("number", ignoreCase = true)
 
-        if (method.name == "isDefaulted") {
-            if (result is Boolean && result) {
+        // Handle decimal type conversion
+        if (isDecimal) {
+            when (methodName) {
+                "getSQLDataType" -> {
+                    // Let the original method run, we'll just log it to debug
+                    val result = method.invoke(original, *(args ?: emptyArray()))
+                    println("SQLDataType for ${tableDef.name}.${columnDef.name}: $result")
+                    return result
+                }
+                "getType" -> return "double"
+                "getUserType" -> return "kotlin.Double"
+                "getConverter" -> return null
+                "getBinding" -> return null
+                "isGenericNumberType" -> return false
+                "isNumeric" -> return true
+                "getLength" -> return 0
+                "getPrecision" -> return 0
+                "getScale" -> return 0
+            }
+        }
+
+        // Special case for nullability
+        if (methodName == "isDefaulted") {
+            val result = method.invoke(original, *(args ?: emptyArray())) as? Boolean
+            if (result == true) {
                 println("Turning off nullability for ${tableDef.name}.${columnDef.name}")
             }
             return false
         }
 
-        return result
+        // For all other methods, delegate to the original
+        return method.invoke(original, *(args ?: emptyArray()))
     }
 }
