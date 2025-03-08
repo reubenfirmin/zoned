@@ -12,10 +12,7 @@ class JavaTypeResolver() {
      * Get the Java type for a DataTypeDefinition
      */
     fun getJavaType(type: DataTypeDefinition): String {
-        // Since we don't have direct access to JavaWriter, we need a workaround
-        // We'll use a simplified approach based on known type mappings
-
-        val typeName = type.type.lowercase()
+            val typeName = type.type.lowercase()
 
         return when {
             // Handle common SQL types
@@ -23,6 +20,7 @@ class JavaTypeResolver() {
             typeName.contains("varchar") || typeName.contains("char") || typeName.contains("text") -> "String"
             typeName.contains("decimal") || typeName.contains("numeric") -> "Double"
             typeName.contains("timestamp") -> "java.time.LocalDateTime"
+            typeName.contains("datetime") -> "java.time.LocalDateTime"
             typeName.contains("date") -> "java.time.LocalDate"
             typeName.contains("time") -> "java.time.LocalTime"
             typeName.contains("boolean") || typeName.contains("bit") -> "Boolean"

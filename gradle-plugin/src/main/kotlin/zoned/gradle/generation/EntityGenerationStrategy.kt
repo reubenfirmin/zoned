@@ -1,4 +1,3 @@
-// Helper function to singularize a name
 package zoned.gradle.generation
 
 import org.gradle.configurationcache.extensions.capitalized
@@ -41,27 +40,19 @@ class EntityGenerationStrategy : DefaultGeneratorStrategy() {
         return primaryKey.getKeyColumns().firstOrNull()
     }
 
+    // Standard Java/Kotlin identifier conversion
+    // This is used for default jOOQ generated code - tables, records, etc.
     override fun getJavaIdentifier(definition: Definition): String {
         val identifier = super.getJavaIdentifier(definition)
+        return identifier.split('_')
+            .joinToString("") { it.lowercase().capitalized() }
+    }
 
-        // For fields in a record/POJO, we want camelCase (lowercase first letter)
-        // For table references in the companion object, default behavior is fine
-        return when (definition) {
-            is ColumnDefinition -> {
-                // Start with lowercase for field names
-                identifier.split('_')
-                    .mapIndexed { index, part ->
-                        if (index == 0) part.lowercase()
-                        else part.lowercase().capitalized()
-                    }
-                    .joinToString("")
-            }
-            else -> {
-                // Keep default behavior for non-column identifiers
-                identifier.split('_')
-                    .joinToString("") { it.lowercase().capitalized() }
-            }
-        }
+    // For entity POJO fields, we want camelCase instead of PascalCase
+    fun getJavaIdentifierForEntityField(definition: Definition): String {
+        val pascalCase = getJavaIdentifier(definition)
+        // Convert first letter to lowercase for entity properties
+        return pascalCase.first().lowercase() + pascalCase.substring(1)
     }
 
     // From RenamingStrategy - singularize class names
@@ -70,24 +61,28 @@ class EntityGenerationStrategy : DefaultGeneratorStrategy() {
         return defaultName.singularize()
     }
 
-    fun String.singularize() = if (exceptions.contains(this)) { this } else { this.removeSuffix("s") }
+    fun String.singularize() = if (singularizeExceptions.contains(this)) { this } else { this.removeSuffix("s") }
 
-    // TODO is this used?
-    val exceptions = setOf<String>()
+    private fun isNullable(column: ColumnDefinition): Boolean {
+        return column.type.isNullable
+    }
+
+    fun hasPrimaryKeyId(table: TableDefinition): Boolean {
+        val pkColumn = getPrimaryKeyColumn(table)
+        return pkColumn != null && getJavaIdentifierForEntityField(pkColumn) == "id"
+    }
 
     // From RenamingStrategy - add appropriate interfaces
     override fun getJavaClassImplements(definition: Definition?, mode: GeneratorStrategy.Mode?): MutableList<String> {
         val defs = super.getJavaClassImplements(definition, mode)
         val addl = when (mode) {
             GeneratorStrategy.Mode.RECORD ->  "zoned.framework.db.Record"
-            GeneratorStrategy.Mode.POJO -> if (definition is TableDefinition &&
-                getPrimaryKeyColumn(definition)?.let {
-                    getJavaIdentifier(it) == "id"
-                } == true) {
-                null // Don't add Entity interface here for POJO when using sealed class
-            } else {
+            GeneratorStrategy.Mode.POJO ->
+//                if (definition is TableDefinition && hasPrimaryKeyId(definition)) {
+//                null // Don't add Entity interface here for POJO when using sealed class
+//            } else {
                 "zoned.framework.db.Entity"
-            }
+//            }
             GeneratorStrategy.Mode.DEFAULT -> {
                 if (definition is TableDefinition) {
                     "zoned.framework.db.EntityTable"
@@ -117,7 +112,7 @@ class EntityGenerationStrategy : DefaultGeneratorStrategy() {
         sb.append("import zoned.framework.db.Entity;\n\n")
 
         // Use sealed class pattern for any table with an "id" primary key field
-        val useSealedClass = pkColumn != null && getJavaIdentifier(pkColumn) == "id"
+        val useSealedClass = pkColumn != null && getJavaIdentifierForEntityField(pkColumn) == "id"
 
         // Exclude primary key column from New state
         val newStateColumns = if (pkColumn != null) {
@@ -135,10 +130,12 @@ class EntityGenerationStrategy : DefaultGeneratorStrategy() {
             // New state class
             sb.append("    data class New(\n")
             newStateColumns.forEachIndexed { index, column ->
-                val fieldName = getJavaIdentifier(column)
+                val fieldName = getJavaIdentifierForEntityField(column)
                 // Use the JavaTypeResolver to get the correct Kotlin type
                 val fieldType = typeResolver.getJavaType(column.getType())
-                sb.append("        val $fieldName: $fieldType")
+                // Add nullable marker if the column is nullable
+                val fieldTypeWithNullability = if (isNullable(column)) "$fieldType?" else fieldType
+                sb.append("        val $fieldName: $fieldTypeWithNullability")
                 if (index < newStateColumns.size - 1) sb.append(",")
                 sb.append("\n")
             }
@@ -147,15 +144,17 @@ class EntityGenerationStrategy : DefaultGeneratorStrategy() {
             // Existing state class
             sb.append("    data class Existing(\n")
             if (pkColumn != null) {
-                val pkFieldName = getJavaIdentifier(pkColumn)
+                val pkFieldName = getJavaIdentifierForEntityField(pkColumn)
                 val pkFieldType = typeResolver.getJavaType(pkColumn.getType())
                 sb.append("        val $pkFieldName: $pkFieldType,\n")
             }
 
             newStateColumns.forEachIndexed { index, column ->
-                val fieldName = getJavaIdentifier(column)
+                val fieldName = getJavaIdentifierForEntityField(column)
                 val fieldType = typeResolver.getJavaType(column.getType())
-                sb.append("        val $fieldName: $fieldType")
+                // Add nullable marker if the column is nullable
+                val fieldTypeWithNullability = if (isNullable(column)) "$fieldType?" else fieldType
+                sb.append("        val $fieldName: $fieldTypeWithNullability")
                 if (index < newStateColumns.size - 1) sb.append(",")
                 sb.append("\n")
             }
@@ -170,9 +169,10 @@ class EntityGenerationStrategy : DefaultGeneratorStrategy() {
 
             // Include all non-metadata columns
             nonMetadataColumns.forEachIndexed { index, column ->
-                val fieldName = getJavaIdentifier(column)
+                val fieldName = getJavaIdentifierForEntityField(column)
                 val fieldType = typeResolver.getJavaType(column.getType())
-                sb.append("    val $fieldName: $fieldType")
+                val fieldTypeWithNullability = if (isNullable(column)) "$fieldType?" else fieldType
+                sb.append("        val $fieldName: $fieldTypeWithNullability")
                 if (index < nonMetadataColumns.size - 1) sb.append(",")
                 sb.append("\n")
             }

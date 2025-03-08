@@ -48,6 +48,9 @@ open class JooqGenerator : DefaultTask() {
                 .withOnError(OnError.FAIL)
                 .withLogging(Logging.DEBUG)
         )
+
+        // now clean up the record classes
+        RecordUpdater(project).updateRecords()
     }
 
     private fun jdbc(config: Config): Jdbc {
