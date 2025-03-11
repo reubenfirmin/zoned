@@ -82,39 +82,71 @@ open class RecordUpdater(val project: Project){
         val recordClassName = recordFile.nameWithoutExtension
         val entityClassName = recordClassName.removeSuffix("Record")
 
-        val transforms: MutableList<(String) -> String> = mutableListOf()
-        transforms.add { it.replace("this.created = value.created", "") }
-        transforms.add { it.replace("this.modified = value.modified", "") }
-        transforms.add { it.replace("this.deleted = value.deleted", "") }
+        // Look for specific text patterns that we know exist in the constructor
+        // This is a much more direct approach that doesn't rely on complex regex patterns
+        val startPattern = "constructor(value:"
+        val metadataFields = listOf(
+            "this.created = value.created",
+            "this.modified = value.modified",
+            "this.deleted = value.deleted"
+        )
 
-        if (wasSealed && !content.contains("$entityClassName.Existing")) {
-            transforms.add { it.replace("pojos.${entityClassName}", "pojos.$entityClassName.Existing") }
-        }
-
-        // Find the constructor that takes the POJO as a parameter
-        val pojoPackage = "$modelPackage.jooq.tables.pojos"
-        val constructorPattern = """constructor\(value:\s+$pojoPackage\.$entityClassName\?\):\s+this\(\)\s+\{
-(?:\s+if\s+\(value\s+!=\s+null\)\s+\{
-(?:.*?)
-\s+\}\s*
-\})""".toRegex(RegexOption.DOT_MATCHES_ALL)
-
-        val matchResult = constructorPattern.find(content)
-        if (matchResult == null) {
-            println("Could not find expected constructor pattern in ${recordFile.name}")
+        // Find the start of the constructor section
+        val constructorStart = content.indexOf(startPattern)
+        if (constructorStart == -1) {
+            println("Could not find constructor in ${recordFile.name}")
             return
         }
 
-        // Extract the body of the constructor
-        val constructorBody = matchResult.groupValues[0]
+        // Find the end by looking for the closing brace of the constructor
+        // We'll need to track balanced braces to find the right closing one
+        var pos = constructorStart
+        var openBraces = 0
+        var constructorEnd = -1
 
-        // Create the new constructor with the Existing sealed class
-        val newConstructor = transforms.fold(constructorBody) { acc, transform ->
-            transform(acc)
+        while (pos < content.length) {
+            when (content[pos]) {
+                '{' -> openBraces++
+                '}' -> {
+                    openBraces--
+                    if (openBraces == 0) {
+                        constructorEnd = pos + 1
+                        break
+                    }
+                }
+            }
+            pos++
+        }
+
+        if (constructorEnd == -1) {
+            println("Could not find end of constructor in ${recordFile.name}")
+            return
+        }
+
+        // Extract the constructor code
+        val constructorCode = content.substring(constructorStart, constructorEnd)
+
+        // Create a modified version with metadata fields removed
+        var modifiedCode = constructorCode
+        for (field in metadataFields) {
+            modifiedCode = modifiedCode.replace(field, "")
+        }
+
+        // Update sealed class references if needed
+        if (wasSealed) {
+            // Find the package path in the constructor
+            val packagePathPattern = """value: ([^?]+)\?""".toRegex()
+            val match = packagePathPattern.find(modifiedCode)
+            if (match != null) {
+                val path = match.groupValues[1].trim()
+                if (!path.endsWith(".Existing")) {
+                    modifiedCode = modifiedCode.replace(path, "$path.Existing")
+                }
+            }
         }
 
         // Replace the constructor in the file content
-        val updatedContent = content.replace(constructorBody, newConstructor)
+        val updatedContent = content.replace(constructorCode, modifiedCode)
 
         // Write the updated content back to the file
         recordFile.writeText(updatedContent)

@@ -7,8 +7,6 @@ import zoned.framework.ui.components.html
 
 interface PageTemplate {
 
-    fun title(): String
-
     fun HEAD.header()
 
     fun bodyClasses(): List<String>

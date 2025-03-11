@@ -88,12 +88,13 @@ object Fragment {
         return Response(Either.left(writePage {
             head {
                 title(title)
+
                 with (template) {
                     header()
                 }
                 // TODO how does this work with framework? hardcoded?
                 link(href = "/static/output.css", rel = "stylesheet")
-                bundleInit()
+                bund    leInit()
             }
 
             body(template.bodyClasses().joinToString(" ")) {

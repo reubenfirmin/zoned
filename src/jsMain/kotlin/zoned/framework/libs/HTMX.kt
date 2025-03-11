@@ -27,11 +27,14 @@ object HTMXHelper {
         window.asDynamic().htmx = htmx
 
         // and then we can wire up our onLoad per https://htmx.org/docs/#init_3rd_party_with_events
-        htmx.onLoad { content: Element ->
+        htmx.on("htmx:load") { event ->
+            val content = event.asDynamic().detail.elt as Element
             initFlowbite()
             FlowbiteHelpers.clearOpenElements()
+
             // since body is boosted, we don't rerun all of head each time. but we do want to change the title between pages
             val title = content.querySelector("head > title")
+
             if (title != null) {
                 title.textContent?.let { newTitle ->
                     document.title = newTitle
