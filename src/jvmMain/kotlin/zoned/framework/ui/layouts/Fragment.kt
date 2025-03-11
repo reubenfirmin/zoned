@@ -94,7 +94,7 @@ object Fragment {
                 }
                 // TODO how does this work with framework? hardcoded?
                 link(href = "/static/output.css", rel = "stylesheet")
-                bund    leInit()
+                bundleInit()
             }
 
             body(template.bodyClasses().joinToString(" ")) {
