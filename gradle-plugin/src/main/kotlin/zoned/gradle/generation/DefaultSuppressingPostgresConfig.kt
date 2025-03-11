@@ -1,10 +1,10 @@
-package zoned.gradle
+package zoned.gradle.generation
 
 import org.jooq.meta.TableDefinition
-import org.jooq.meta.sqlite.SQLiteDatabase
+import org.jooq.meta.postgres.PostgresDatabase
 import java.lang.reflect.Proxy
 
-class DefaultSuppressingSqlliteConfig: SQLiteDatabase() {
+class DefaultSuppressingPostgresConfig: PostgresDatabase() {
 
     override fun getTables0() = super.getTables0()
         .map(::patch)

@@ -5,6 +5,10 @@ import org.gradle.api.Project
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.tasks.bundling.Tar
 import org.gradle.api.tasks.bundling.Zip
+import zoned.gradle.db.DatabaseCleaner
+import zoned.gradle.db.DatabaseMigrator
+import zoned.gradle.generation.JooqGenerator
+import zoned.gradle.style.BuildStyleTask
 
 class ZonedPlugin : Plugin<Project> {
 

@@ -1,4 +1,4 @@
-package zoned.gradle
+package zoned.gradle.db
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction

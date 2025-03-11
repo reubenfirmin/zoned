@@ -1,4 +1,4 @@
-package zoned.gradle
+package zoned.gradle.style
 
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.ProjectLayout
@@ -8,9 +8,6 @@ import com.github.gradle.node.npm.task.NpxTask
 import org.gradle.api.DefaultTask
 import java.io.File
 import javax.inject.Inject
-import org.gradle.api.logging.LogLevel
-import org.gradle.api.logging.LogLevel.INFO
-import org.gradle.api.logging.configuration.ShowStacktrace
 
 abstract class BuildStyleTask @Inject constructor(
     private val layout: ProjectLayout

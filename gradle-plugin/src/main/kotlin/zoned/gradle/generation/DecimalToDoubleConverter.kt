@@ -1,4 +1,4 @@
-package zoned.gradle
+package zoned.gradle.generation
 
 import org.jooq.Converter
 import java.math.BigDecimal

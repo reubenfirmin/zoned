@@ -1,4 +1,4 @@
-package zoned.gradle
+package zoned.gradle.generation
 
 import org.jooq.meta.DataTypeDefinition
 import org.jooq.meta.DefaultColumnDefinition

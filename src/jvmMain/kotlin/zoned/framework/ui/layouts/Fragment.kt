@@ -88,6 +88,7 @@ object Fragment {
         return Response(Either.left(writePage {
             head {
                 title(title)
+
                 with (template) {
                     header()
                 }
