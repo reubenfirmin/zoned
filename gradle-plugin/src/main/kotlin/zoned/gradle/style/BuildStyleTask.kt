@@ -49,7 +49,11 @@ abstract class BuildStyleTask @Inject constructor(
 
     private fun setupNpxTask() {
         npxTask = project.tasks.create("buildStyleNpx", NpxTask::class.java)
-        npxTask.command.set("@tailwindcss/cli")
+        
+        // Use the bundled tailwindcss from build/js/node_modules instead of npx
+        val tailwindCli = project.layout.buildDirectory.dir("js/node_modules/@tailwindcss/cli/dist/index.mjs").get().asFile
+        npxTask.command.set("node")
+        npxTask.args.set(listOf(tailwindCli.absolutePath))
 
         // Set up NODE_PATH
         val jsDir = project.layout.buildDirectory.dir("js/node_modules").get().asFile
@@ -114,8 +118,9 @@ abstract class BuildStyleTask @Inject constructor(
             tempInputFile.writeText(processedCss)
         }
 
-        // Set up the args for the npx command
-        npxTask.args.set(listOf(
+        // Set up the args for the node command
+        val currentArgs = npxTask.args.get().toMutableList()
+        currentArgs.addAll(listOf(
             "-i", if (inputCss.contains("@zoned")) {
                 tempInputFile.absolutePath
             } else {
@@ -123,6 +128,7 @@ abstract class BuildStyleTask @Inject constructor(
             },
             "-o", outputFile.asFile.get().absolutePath
         ))
+        npxTask.args.set(currentArgs)
 
         println("${npxTask.command.get()} ${npxTask.args.get()} ${npxTask.environment.get()}}")
     }
