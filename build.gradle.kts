@@ -74,8 +74,8 @@ kotlin {
                 api("org.jetbrains.kotlin-wrappers:kotlin-css")
                 api("org.jetbrains.kotlinx:kotlinx-html-js:0.11.0")
 
-                api(npm("tailwindcss", "4.0.4"))
-                api(npm("@tailwindcss/cli", "4.0.4"))
+                api(npm("tailwindcss", "4.1.12"))
+                api(npm("@tailwindcss/cli", "4.1.12"))
                 api(npm("sortablejs", "1.15.1"))
                 api(npm("flowbite", "3.1.2"))
                 api(npm("htmx.org", "2.0.4"))
