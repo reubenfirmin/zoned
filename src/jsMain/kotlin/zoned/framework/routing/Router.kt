@@ -19,13 +19,25 @@ object Router {
         RouteTrie.findRoute(path)?.apply {
             val (route, params) = this
 
-            document.body.apply {
-                clear()
-                val consumer = appendTo()
+            when (route.mode) {
+                RenderMode.FULL_PAGE -> {
+                    document.body.apply {
+                        clear()
+                        val consumer = appendTo()
 
-                when (val result = route.handler(consumer, Params(params))) {
-                    is Promise<*> -> result.then { DomBehavior.flush() }
-                    else -> DomBehavior.flush()
+                        when (val result = route.handler(consumer, Params(params))) {
+                            is Promise<*> -> result.then { DomBehavior.flush() }
+                            else -> DomBehavior.flush()
+                        }
+                    }
+                }
+                RenderMode.PARTIAL -> {
+                    // App handles DOM manipulation, just invoke handler
+                    val consumer = document.body.appendTo()
+                    when (val result = route.handler(consumer, Params(params))) {
+                        is Promise<*> -> result.then { DomBehavior.flush() }
+                        else -> DomBehavior.flush()
+                    }
                 }
             }
 

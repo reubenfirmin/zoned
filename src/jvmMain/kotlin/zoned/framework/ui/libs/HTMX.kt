@@ -212,3 +212,27 @@ fun withAction(handler: KFunction<Response>,
                swapDelay: Int? = null,
                target: String? = null) =
     HTMXAction(handler, parameterizer, includeSelector, swap, swapDelay, target)
+
+/**
+ * Simplified parameter passing using varargs.
+ * Example: withAction(api::save, "id" to 123, "mode" to "edit")
+ */
+fun withAction(handler: KFunction<Response>,
+               vararg params: Pair<String, Any>,
+               includeSelector: String? = null,
+               swap: HTMX.Swap? = null,
+               swapDelay: Int? = null,
+               target: String? = null): HTMXAction {
+    val parameterizer: Parameterizer? = if (params.isNotEmpty()) {
+        Parameterizer { route ->
+            var paramRoute = route.param(params[0].first, params[0].second)
+            for (i in 1 until params.size) {
+                paramRoute = paramRoute.addParam(params[i].first, params[i].second)
+            }
+            paramRoute
+        }
+    } else {
+        null
+    }
+    return HTMXAction(handler, parameterizer, includeSelector, swap, swapDelay, target)
+}

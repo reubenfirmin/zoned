@@ -45,7 +45,7 @@ class EntityGenerationStrategy : DefaultGeneratorStrategy() {
     override fun getJavaIdentifier(definition: Definition): String {
         val identifier = super.getJavaIdentifier(definition)
         return identifier.split('_')
-            .joinToString("") { it.lowercase().capitalized() }
+            .joinToString("") { it.lowercase().replaceFirstChar { c -> c.uppercase() } }
     }
 
     // For entity POJO fields, we want camelCase instead of PascalCase

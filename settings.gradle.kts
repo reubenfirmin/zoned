@@ -1,5 +1,5 @@
 pluginManagement {
-    val kotlinVersion = "2.1.0"
+    val kotlinVersion = "2.3.0-RC"
 
     plugins {
         kotlin("multiplatform") version kotlinVersion

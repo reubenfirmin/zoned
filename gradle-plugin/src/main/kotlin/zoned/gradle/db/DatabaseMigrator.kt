@@ -20,7 +20,6 @@ open class DatabaseMigrator : DefaultTask() {
         // TODO support snapshot and rollback
         logger.lifecycle("MIGRATING")
 
-
         // Determine the actual path being used
         val chosenPath = paths.firstOrNull { java.io.File(it).exists() }
             ?: throw IllegalStateException("No valid migration directory found in defined paths.")

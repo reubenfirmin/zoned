@@ -23,6 +23,7 @@ object Fragment {
 
     fun CommonAttributeGroupFacade.zone(target: HTMXTarget) {
         id = target.id
+        target.markRendered()  // Track that this target has been rendered
     }
 
     /**
@@ -87,6 +88,7 @@ object Fragment {
         setHistory()
         return Response(Either.left(writePage {
             head {
+                meta(name = "viewport", content = "width=device-width, initial-scale=1, maximum-scale=1")
                 title(title)
 
                 with (template) {

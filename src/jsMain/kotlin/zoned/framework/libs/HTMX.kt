@@ -29,7 +29,12 @@ object HTMXHelper {
         // and then we can wire up our onLoad per https://htmx.org/docs/#init_3rd_party_with_events
         htmx.on("htmx:load") { event ->
             val content = event.asDynamic().detail.elt as Element
-            initFlowbite()
+            // Use selective Flowbite initialization to avoid initCollapses() which adds resize listeners
+            // that interfere with Tailwind CSS responsive utilities
+            initDropdowns()
+            initModals()
+            initTooltips()
+            initAccordions()
             FlowbiteHelpers.clearOpenElements()
 
             // since body is boosted, we don't rerun all of head each time. but we do want to change the title between pages

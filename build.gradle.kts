@@ -13,7 +13,6 @@ kotlin {
     jvmToolchain(21)
 
     jvm {
-        withJava()
     }
 
     js(IR) {
@@ -102,6 +101,7 @@ kotlin {
         val jvmTest by getting {
             dependencies {
                 implementation(kotlin("test"))
+                implementation("org.jsoup:jsoup:1.17.2")
             }
         }
     }

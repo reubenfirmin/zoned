@@ -8,11 +8,12 @@ import kotlinx.html.unsafe
 object Bundle {
 
     /**
-     * This is our js from jsMain! Requires a gradle round trip to get this into place
+     * This is our js from jsMain! Requires a gradle round trip to get this into place.
+     * The bundle path is automatically generated based on your project name via the zoned gradle plugin.
      */
     fun HEAD.bundleInit() {
         script {
-            src="/static/main.bundle.js"
+            src = BundleConfig.BUNDLE_PATH
         }
     }
 

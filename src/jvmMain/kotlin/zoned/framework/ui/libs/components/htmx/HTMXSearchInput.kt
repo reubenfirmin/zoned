@@ -2,16 +2,20 @@ package zoned.framework.ui.libs.components.htmx
 
 import zoned.framework.ui.tags.svg
 import kotlinx.html.*
+import zoned.framework.ui.components.buttons.HTMXAction
+import zoned.framework.ui.libs.onTypingPause
 
 /**
- * Creates a form with an input which is POSTed to the path (the input name ends up as a form param)
+ * Creates a form with an input which is POSTed via HTMX (the input name ends up as a form param)
+ *
+ * @deprecated Use SearchInput with HTMXAction for type-safe HTMX integration
  */
+@Deprecated("Use SearchInput with HTMXAction", ReplaceWith("searchInput"))
 class HTMXSearchInput(private val styleClasses: String,
                       private val inputName: String,
                       private val inputPlaceholder: String,
                       private val params: Map<String, String>,
-                      val path: String,
-                      private val elementTarget: String,
+                      val searchAction: HTMXAction?,
                       consumer: TagConsumer<*>): DIV(mapOf("class" to "relative w-full"), consumer) {
 
     val searchDelay = 200 // ms. could be parameterized
@@ -50,9 +54,12 @@ class HTMXSearchInput(private val styleClasses: String,
                 this@HTMXSearchInput.let {
                     name = it.inputName
                     classes = it.styleClasses.split(" ").toSet()
-                    attributes["hx-post"] = it.path
-                    attributes["hx-trigger"] = "keyup changed delay:${it.searchDelay}ms"
-                    attributes["hx-target"] = it.elementTarget
+
+                    // Use type-safe HTMX action if provided
+                    if (it.searchAction != null) {
+                        onTypingPause(it.searchAction, delayMs = it.searchDelay)
+                    }
+
                     placeholder = it.inputPlaceholder
                     it.block()
                 }
@@ -61,10 +68,14 @@ class HTMXSearchInput(private val styleClasses: String,
     }
 }
 
-fun FlowContent.htmxSearchInput(name: String, placeholder: String, path: String, target: String,
+/**
+ * @deprecated Use searchInput with HTMXAction for type-safe HTMX integration
+ */
+@Deprecated("Use searchInput with HTMXAction", ReplaceWith("searchInput"))
+fun FlowContent.htmxSearchInput(name: String, placeholder: String, searchAction: HTMXAction,
                                 withOptions: WithOptions, block: HTMXSearchInput.() -> Unit) {
 
-    HTMXSearchInput(withOptions.classes, name, placeholder, withOptions.params, path, target, consumer).visit {
+    HTMXSearchInput(withOptions.classes, name, placeholder, withOptions.params, searchAction, consumer).visit {
         render(block)
     }
 }

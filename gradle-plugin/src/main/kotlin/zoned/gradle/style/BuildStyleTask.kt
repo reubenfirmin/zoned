@@ -71,7 +71,11 @@ abstract class BuildStyleTask @Inject constructor(
         outputFile.get().asFile.parentFile.mkdirs()
 
         // Extract library sources if they exist
-        project.configurations.findByName("compileClasspath")?.let { classpath ->
+        // Try jvmCompileClasspath first (for KMP projects), fall back to compileClasspath
+        val configuration = project.configurations.findByName("jvmCompileClasspath")
+            ?: project.configurations.findByName("compileClasspath")
+
+        configuration?.let { classpath ->
             classpath.find { it.name.contains("zoned") }?.let { jar ->
                 val sourcesJar = jar.toString().replace(".jar", "-sources.jar")
                 if (File(sourcesJar).exists()) {
@@ -83,30 +87,31 @@ abstract class BuildStyleTask @Inject constructor(
                         copySpec.from(project.zipTree(sourcesJar))
                         copySpec.into(librarySrcDir.get())
                     }
+                    logger.lifecycle("Extracted zoned sources from: $sourcesJar")
                 } else {
-                    println("Couldn't find sources jar!")
+                    logger.warn("Couldn't find sources jar at: $sourcesJar")
                 }
-            }
+            } ?: logger.warn("No zoned jar found in classpath")
         }
 
         val inputCss = inputCssFile.get().asFile.readText()
 
         if (inputCss.contains("@zoned")) {
             println("Replacing @zoned token")
-            val configDirective = if (configFile.get().asFile.exists()) {
-                "@config \"./tailwind.config.js\";"
-            } else ""
-
             val sourceDirectives = listOf(
-                "src/jvmMain/kotlin/",
-                "src/jsMain/kotlin/",
-                "build/tmp/library-src",
-                "build/js/node_modules/flowbite/"
+                "src/jvmMain/kotlin/**/*.kt",
+                "src/jsMain/kotlin/**/*.kt",
+                "build/tmp/library-src/**/*.kt",
+                "build/js/node_modules/flowbite/**/*.js"
             ).joinToString("\n") { "@source \"$it\";" }
 
             val processedCss = """
                 |@import "tailwindcss";
-                |$configDirective
+                |@source inline("sm:block md:block lg:block xl:block 2xl:block");
+                |@source inline("sm:hidden md:hidden lg:hidden xl:hidden 2xl:hidden");
+                |@source inline("sm:flex md:flex lg:flex xl:flex 2xl:flex");
+                |@source inline("sm:flex-row md:flex-row lg:flex-row xl:flex-row 2xl:flex-row");
+                |@source inline("sm:w-auto md:w-auto lg:w-auto xl:w-auto 2xl:w-auto");
                 |$sourceDirectives
                 |${inputCss.replace("@zoned", "")}
                 """.trimMargin()
@@ -121,7 +126,8 @@ abstract class BuildStyleTask @Inject constructor(
             } else {
                 inputCssFile.asFile.get().absolutePath
             },
-            "-o", outputFile.asFile.get().absolutePath
+            "-o", outputFile.asFile.get().absolutePath,
+            "--minify"
         ))
 
         println("${npxTask.command.get()} ${npxTask.args.get()} ${npxTask.environment.get()}}")
