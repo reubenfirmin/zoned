@@ -1,7 +1,7 @@
 package zoned.framework.ui.components.dropdown
 
 import kotlinx.html.*
-import zoned.framework.ui.components.buttons.ButtonType.DROPDOWN
+import zoned.framework.ui.components.buttons.ButtonStyle.DROPDOWN
 import zoned.framework.ui.components.buttons.HTMXAction
 import zoned.framework.ui.components.buttons.WithFlowbiteAttributes
 import zoned.framework.ui.components.buttons.ibutton

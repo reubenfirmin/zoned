@@ -1,8 +1,8 @@
 package zoned.framework.ui.components.dropdown
 
 import kotlinx.html.*
-import zoned.framework.ui.components.buttons.ButtonType
-import zoned.framework.ui.components.buttons.ButtonType.DROPDOWN
+import zoned.framework.ui.components.buttons.ButtonStyle
+import zoned.framework.ui.components.buttons.ButtonStyle.DROPDOWN
 import zoned.framework.ui.components.buttons.WithFlowbiteAttributes
 import zoned.framework.ui.components.buttons.ibutton
 import zoned.framework.ui.components.icons.dropdownIcon
@@ -48,7 +48,7 @@ class CheckboxDropdown(val id: String,
                     }
                 }
                 div("mt-4 mr-2") {
-                    ibutton(ButtonType.PRIMARY, "Apply", this@CheckboxDropdown.action)
+                    ibutton(ButtonStyle.PRIMARY, "Apply", this@CheckboxDropdown.action)
                 }
             }
         }

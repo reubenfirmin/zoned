@@ -18,14 +18,14 @@ import web.html.HTMLElement
  */
 open class Routes<T : Any>(val resource: T, private val basePath: String) {
 
-    fun route(block: T.() -> Pair<String, TagConsumer<HTMLElement>.(Params) -> Any>): Route {
+    fun route(mode: RenderMode = RenderMode.FULL_PAGE, block: T.() -> Pair<String, TagConsumer<HTMLElement>.(Params) -> Any>): Route {
         val (path, handler) = resource.block()
         val fullPath = (basePath + path).replace("//", "/")
-        return RouteCreator.addRoute(fullPath, handler = handler)
+        return RouteCreator.addRoute(fullPath, mode = mode, handler = handler)
     }
 
-    fun fragment(zone: Zone, parent: Route, block: T.() -> Pair<String, TagConsumer<HTMLElement>.(Params) -> Any>): Route {
+    fun fragment(zone: Zone, parent: Route, mode: RenderMode = RenderMode.FULL_PAGE, block: T.() -> Pair<String, TagConsumer<HTMLElement>.(Params) -> Any>): Route {
         val (path, handler) = resource.block()
-        return RouteCreator.addRoute(path, zone, parent, handler)
+        return RouteCreator.addRoute(path, zone, parent, mode, handler)
     }
 }

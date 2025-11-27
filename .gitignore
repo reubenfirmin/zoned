@@ -46,3 +46,7 @@ bin/
 
 package.json
 package-lock.json
+# Zoned generated files
+watch.sh
+node_modules
+kotlin-js-store

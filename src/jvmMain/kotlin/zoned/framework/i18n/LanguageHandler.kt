@@ -36,6 +36,8 @@ fun lang(language: Language, english: String, espanol: String) = lang(language, 
 
 fun lang(language: Language, translated: Translated) = lang(language, translated.english, translated.espanol)
 
+operator fun String.minus(espanol: String): Translated = Translated(this, espanol)
+
 enum class Language {
     ENGLISH,
     ESPANOL

@@ -1,5 +1,7 @@
 package zoned.framework.libs
 
+import js.objects.Record
+import js.objects.jso
 import kotlinx.browser.document
 import kotlinx.browser.window
 import org.w3c.dom.Element
@@ -16,6 +18,32 @@ external object HTMXModule {
 external interface HTMX {
     fun onLoad(handler: (Element) -> Unit)
     fun on(eventName: String, handler: (Event) -> Unit)
+
+    /**
+     * Trigger an HTMX ajax request programmatically.
+     * @param method HTTP method (GET, POST, PUT, DELETE, etc.)
+     * @param url The URL to request
+     * @param options Object with target, swap, values, etc.
+     */
+    fun ajax(method: String, url: String, options: dynamic)
+}
+
+/**
+ * Options for htmx.ajax() calls
+ */
+external interface HTMXAjaxOptions {
+    var target: String?
+    var swap: String?
+    var values: Record<String, String>?
+}
+
+/**
+ * Convert a Kotlin Map to a typed JS Record for HTMX form values
+ */
+fun Map<String, String>.toRecord(): Record<String, String> {
+    val record: Record<String, String> = jso()
+    this.forEach { (k, v) -> record[k] = v }
+    return record
 }
 
 object HTMXHelper {
@@ -29,7 +57,12 @@ object HTMXHelper {
         // and then we can wire up our onLoad per https://htmx.org/docs/#init_3rd_party_with_events
         htmx.on("htmx:load") { event ->
             val content = event.asDynamic().detail.elt as Element
-            initFlowbite()
+            // Use selective Flowbite initialization to avoid initCollapses() which adds resize listeners
+            // that interfere with Tailwind CSS responsive utilities
+            initDropdowns()
+            initModals()
+            initTooltips()
+            initAccordions()
             FlowbiteHelpers.clearOpenElements()
 
             // since body is boosted, we don't rerun all of head each time. but we do want to change the title between pages
@@ -109,5 +142,65 @@ object HTMXHelper {
                 }
             }
         }
+    }
+
+    /**
+     * Trigger an HTMX POST request.
+     * @param url The URL (from server-serialized config)
+     * @param target CSS selector for response target
+     * @param values Form data as key-value pairs
+     * @param swap HTMX swap strategy (default: innerHTML)
+     */
+    fun post(url: String, target: String, values: Map<String, String> = emptyMap(), swap: String = "innerHTML") {
+        htmx.ajax("POST", url, jso<HTMXAjaxOptions> {
+            this.target = target
+            this.swap = swap
+            if (values.isNotEmpty()) {
+                this.values = values.toRecord()
+            }
+        })
+    }
+
+    /**
+     * Trigger an HTMX GET request.
+     * @param url The URL (from server-serialized config)
+     * @param target CSS selector for response target
+     * @param swap HTMX swap strategy (default: innerHTML)
+     */
+    fun get(url: String, target: String, swap: String = "innerHTML") {
+        htmx.ajax("GET", url, jso<HTMXAjaxOptions> {
+            this.target = target
+            this.swap = swap
+        })
+    }
+
+    /**
+     * Trigger an HTMX DELETE request.
+     * @param url The URL (from server-serialized config)
+     * @param target CSS selector for response target
+     * @param swap HTMX swap strategy (default: innerHTML)
+     */
+    fun delete(url: String, target: String, swap: String = "innerHTML") {
+        htmx.ajax("DELETE", url, jso<HTMXAjaxOptions> {
+            this.target = target
+            this.swap = swap
+        })
+    }
+
+    /**
+     * Trigger an HTMX PUT request.
+     * @param url The URL (from server-serialized config)
+     * @param target CSS selector for response target
+     * @param values Form data as key-value pairs
+     * @param swap HTMX swap strategy (default: innerHTML)
+     */
+    fun put(url: String, target: String, values: Map<String, String> = emptyMap(), swap: String = "innerHTML") {
+        htmx.ajax("PUT", url, jso<HTMXAjaxOptions> {
+            this.target = target
+            this.swap = swap
+            if (values.isNotEmpty()) {
+                this.values = values.toRecord()
+            }
+        })
     }
 }

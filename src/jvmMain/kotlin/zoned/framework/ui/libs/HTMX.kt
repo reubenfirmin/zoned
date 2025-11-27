@@ -11,6 +11,8 @@ import zoned.framework.api.Method.PUT
 import zoned.framework.form.ConvertedEntity
 import zoned.framework.ui.components.buttons.HTMXAction
 import zoned.framework.ui.layouts.HTMXTarget
+import zoned.framework.ui.layouts.HtmxInclude
+import zoned.framework.ui.layouts.HtmxSelector
 import zoned.framework.ui.libs.HTMX.Swap.*
 import zoned.framework.ui.libs.HTMX.htmxOnEvent
 import zoned.framework.util.Either
@@ -34,10 +36,10 @@ object HTMX {
 
     fun HTMLTag.htmxOnEvent(event: String,
                             path: String,
-                            target: String? = null,
+                            target: HtmxSelector? = null,
                             method: Method = POST,
                             swap: Swap? = INNER,
-                            includeSelector: String? = null,
+                            include: HtmxInclude? = null,
                             swapDelay: Int? = 0): HTMLTag {
         attributes["hx-trigger"] = event
         when (method) {
@@ -48,7 +50,7 @@ object HTMX {
             PATCH -> attributes["hx-patch"] = path
         }
         if (target != null) {
-            attributes["hx-target"] = target
+            attributes["hx-target"] = target.cssSelector
         }
         val swapAttr = when (swap) {
             INNER ->  "innerHTML"
@@ -65,8 +67,8 @@ object HTMX {
         if (swap != null) {
             attributes["hx-swap"] = "$swapAttr$delay"
         }
-        if (includeSelector != null) {
-            attributes["hx-include"] = includeSelector
+        if (include != null) {
+            attributes["hx-include"] = include.cssSelector
         }
         return this
     }
@@ -83,7 +85,7 @@ object HTMX {
 // TODO move these to ConextExtensions
 fun Context.target(target: HTMXTarget?) {
     if (target != null) {
-        header("HX-Retarget", target.selector)
+        header("HX-Retarget", target.cssSelector)
     }
 }
 
@@ -142,8 +144,16 @@ fun HTMLTag.onClick(action: HTMXAction): HTMLTag {
             swap = action.swap,
             swapDelay = action.swapDelay,
             target = action.target,
-            includeSelector = action.includeSelector)
+            include = action.include)
     }
+}
+
+/**
+ * Add a confirmation dialog before the HTMX action executes.
+ */
+fun HTMLTag.confirm(message: String): HTMLTag {
+    attributes["hx-confirm"] = message
+    return this
 }
 
 fun HTMLTag.onChange(action: HTMXAction): HTMLTag {
@@ -153,7 +163,7 @@ fun HTMLTag.onChange(action: HTMXAction): HTMLTag {
             method = method,
             swap = action.swap,
             target = action.target,
-            includeSelector = action.includeSelector)
+            include = action.include)
     }
 }
 
@@ -164,7 +174,7 @@ fun HTMLTag.onKeyPress(action: HTMXAction, keycode: String): HTMLTag {
             method = method,
             swap = action.swap,
             target = action.target,
-            includeSelector = action.includeSelector)
+            include = action.include)
     }
 }
 
@@ -177,7 +187,7 @@ fun INPUT.onTypingPause(action: HTMXAction,
             swap = action.swap,
             swapDelay = action.swapDelay,
             target = action.target,
-            includeSelector = action.includeSelector)
+            include = action.include)
     }
 }
 
@@ -189,7 +199,7 @@ fun HTMLTag.onKeypress(action: HTMXAction): HTMLTag {
             swap = action.swap,
             swapDelay = action.swapDelay,
             target = action.target,
-            includeSelector = action.includeSelector)
+            include = action.include)
     }
 }
 
@@ -201,14 +211,51 @@ fun HTMLTag.onKeyUp(action: HTMXAction): HTMLTag {
             swap = action.swap,
             swapDelay = action.swapDelay,
             target = action.target,
-            includeSelector = action.includeSelector)
+            include = action.include)
+    }
+}
+
+fun HTMLTag.onHover(action: HTMXAction, once: Boolean = true): HTMLTag {
+    with (getRoute(action)) {
+        val trigger = if (once) "mouseenter once" else "mouseenter"
+        return htmxOnEvent(trigger,
+            url(),
+            method = method,
+            swap = action.swap,
+            swapDelay = action.swapDelay,
+            target = action.target,
+            include = action.include)
     }
 }
 
 fun withAction(handler: KFunction<Response>,
                parameterizer: Parameterizer? = null,
-               includeSelector: String? = null,
+               include: HtmxInclude? = null,
                swap: HTMX.Swap? = null,
                swapDelay: Int? = null,
-               target: String? = null) =
-    HTMXAction(handler, parameterizer, includeSelector, swap, swapDelay, target)
+               target: HtmxSelector? = null) =
+    HTMXAction(handler, parameterizer, include, swap, swapDelay, target)
+
+/**
+ * Simplified parameter passing using varargs.
+ * Example: withAction(api::save, "id" to 123, "mode" to "edit")
+ */
+fun withAction(handler: KFunction<Response>,
+               vararg params: Pair<String, Any>,
+               include: HtmxInclude? = null,
+               swap: HTMX.Swap? = null,
+               swapDelay: Int? = null,
+               target: HtmxSelector? = null): HTMXAction {
+    val parameterizer: Parameterizer? = if (params.isNotEmpty()) {
+        Parameterizer { route ->
+            var paramRoute = route.param(params[0].first, params[0].second)
+            for (i in 1 until params.size) {
+                paramRoute = paramRoute.addParam(params[i].first, params[i].second)
+            }
+            paramRoute
+        }
+    } else {
+        null
+    }
+    return HTMXAction(handler, parameterizer, include, swap, swapDelay, target)
+}

@@ -39,8 +39,17 @@ external interface SortableEvent {
     val pullMode: String?
 }
 
+/**
+ * SortableJS group options for controlling drag between lists
+ */
+external interface SortableGroupOptions {
+    var name: String?
+    var pull: Boolean?
+    var put: Boolean?
+}
+
 external interface SortableOptions {
-    var group: String?
+    var group: dynamic  // Can be String or SortableGroupOptions
     var sort: Boolean?
     var delay: Int?
     var delayOnTouchOnly: Boolean?

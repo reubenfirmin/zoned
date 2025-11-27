@@ -2,6 +2,7 @@ plugins {
     kotlin("multiplatform")
     kotlin("plugin.serialization")
     id("maven-publish")
+    id("io.4rc.zoned.plugin") version "1.0-SNAPSHOT"
 }
 
 allprojects {
@@ -13,7 +14,6 @@ kotlin {
     jvmToolchain(21)
 
     jvm {
-        withJava()
     }
 
     js(IR) {
@@ -38,6 +38,8 @@ kotlin {
         }
 
         val jvmMain by getting {
+            kotlin.srcDir("${project.buildDir}/generated/kotlin")
+
             dependencies {
                 api("org.postgresql:postgresql:${Versions.postgres}")
                                                     api("org.xerial:sqlite-jdbc:${Versions.sqlite}")
@@ -67,6 +69,8 @@ kotlin {
         }
 
         val jsMain by getting {
+            kotlin.srcDir("${project.buildDir}/generated/kotlin-js")
+
             dependencies {
                 api(project.dependencies.platform("org.jetbrains.kotlin-wrappers:kotlin-wrappers-bom:${Versions.kotlinWrappers}"))
                 api("org.jetbrains.kotlin-wrappers:kotlin-js")
@@ -102,6 +106,7 @@ kotlin {
         val jvmTest by getting {
             dependencies {
                 implementation(kotlin("test"))
+                implementation("org.jsoup:jsoup:1.17.2")
             }
         }
     }

@@ -8,7 +8,8 @@ object RouteTrie {
 
     private class RootNode : TrieNode()
     private class StringNode(val value: String) : TrieNode()
-    private class WildcardNode(val paramName: String) : TrieNode()
+    private class ParamNode(val paramName: String) : TrieNode()
+    private class WildcardNode(val paramName: String) : TrieNode()  // Matches remaining path
     private class RouteNode(val route: Route) : TrieNode()
 
     private val root = RootNode()
@@ -24,6 +25,11 @@ object RouteTrie {
                     current.children.add(it)
                 }
                 is RouteSegment.Parameter -> current.children.find {
+                    it is ParamNode && it.paramName == segment.name
+                } ?: ParamNode(segment.name).also {
+                    current.children.add(it)
+                }
+                is RouteSegment.Wildcard -> current.children.find {
                     it is WildcardNode && it.paramName == segment.name
                 } ?: WildcardNode(segment.name).also {
                     current.children.add(it)
@@ -42,18 +48,33 @@ object RouteTrie {
         val segments = path.split("/").filter { it.isNotEmpty() }
         val params = mutableMapOf<String, String>()
 
-        segments.forEach { segment ->
+        var segmentIndex = 0
+        while (segmentIndex < segments.size) {
+            val segment = segments[segmentIndex]
+
+            // Check for wildcard first (it captures all remaining segments)
+            val wildcardChild = current.children.find { it is WildcardNode }
+            if (wildcardChild != null) {
+                current = wildcardChild
+                val remainingSegments = segments.subList(segmentIndex, segments.size)
+                params[(wildcardChild as WildcardNode).paramName] = remainingSegments.joinToString("/")
+                break  // Wildcard consumes rest of path
+            }
+
+            // Otherwise try to match single segment
             current = current.children.find { child ->
                 when (child) {
                     is StringNode -> child.value == segment
-                    is WildcardNode -> true
+                    is ParamNode -> true
                     else -> false
                 }
             } ?: return null
 
-            if (current is WildcardNode) {
-                params[(current as WildcardNode).paramName] = segment
+            if (current is ParamNode) {
+                params[current.paramName] = segment
             }
+
+            segmentIndex++
         }
 
         // After processing all segments, check if we've reached a RouteNode
@@ -76,7 +97,8 @@ object RouteTrie {
         when (node) {
             is RootNode -> appendLine("Root")
             is StringNode -> appendLine(node.value)
-            is WildcardNode -> appendLine("{${node.paramName}}")
+            is ParamNode -> appendLine("{${node.paramName}}")
+            is WildcardNode -> appendLine("{${node.paramName}...}")
             is RouteNode -> appendLine("Route: ${node.route.pattern}")
         }
 

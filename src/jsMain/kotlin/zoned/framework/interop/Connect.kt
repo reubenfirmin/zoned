@@ -1,5 +1,6 @@
 package zoned.framework.interop
 
+import kotlinx.browser.document
 import kotlinx.html.TagConsumer
 import web.dom.Element
 import kotlinx.html.dom.append
@@ -17,4 +18,8 @@ fun HTMLElement.appendTo(): TagConsumer<HTMLElement> = unsafeCast<org.w3c.dom.HT
 
 fun <T : Element> HTMLCollection<T>.firstOrNull(): T? {
     return if (length > 0) get(0)  else null
+}
+
+fun getHtmlElement(id: String): HTMLElement? {
+    return document.getElementById(id)?.unsafeCast<HTMLElement>()
 }

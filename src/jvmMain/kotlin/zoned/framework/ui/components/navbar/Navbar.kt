@@ -15,19 +15,19 @@ class Navbar(val classes: String,
              private val logoText: String,
              private val logoImage: html.() -> Unit,
              consumer : TagConsumer<*>):
-    NAV(mapOf("class" to "w-screen bg-white border-gray-200 dark:bg-gray-900 $classes"), consumer) {
+    NAV(mapOf("class" to "w-full bg-white border-gray-200 dark:bg-gray-900 $classes"), consumer) {
 
     fun render() {
-        div("flex items-center justify-between mx-auto p-4") {
+        div("flex items-center justify-between w-full p-4") {
             with (this@Navbar) {
                 logo(logoAction, logoText, logoImage)
 
                 // TODO fix whether this shows or not
                 //mobileMenu("navbar-default")
                 div("hidden w-full md:block md:w-auto") {
-                    id = "navbar-default"
+                    // Don't set id to avoid Flowbite auto-initialization interfering with CSS responsive behavior
                     ul(
-                        "font-medium w-full flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 " +
+                        "font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 " +
                         "md:flex-row md:space-x-8 md:mt-0 md:border-0 md:bg-white dark:bg-gray-900 " +
                         "dark:border-gray-700"
                     ) {
