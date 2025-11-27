@@ -3,7 +3,8 @@ package zoned.framework.ui.layouts
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Type-safe HTMX target with optional runtime verification
+ * Type-safe HTMX target with optional runtime verification.
+ * Implements HtmxSelector so it can be passed directly to HTMX functions.
  *
  * Example usage:
  * ```
@@ -17,19 +18,18 @@ import java.util.concurrent.ConcurrentHashMap
  * }
  *
  * button {
- *     onClick(withAction(api::update, target = mainContent.selector))
+ *     onClick(withAction(api::update, target = mainContent))  // Pass directly
  * }
  * ```
  *
  * @param id The HTML element ID (without # prefix)
- * @param selector The CSS selector for targeting (defaults to #id)
  * @param verify Enable runtime verification that this target is rendered before use
  */
 open class HTMXTarget(
     val id: String,
-    val selector: String = "#${id}",
     private val verify: Boolean = false
-) {
+) : HtmxSelector {
+    override val cssSelector: String = "#$id"
     init {
         if (verify) {
             HTMXTargetRegistry.register(this)
@@ -51,7 +51,7 @@ open class HTMXTarget(
     fun verifyRendered() {
         if (verify && !HTMXTargetRegistry.isRendered(this)) {
             throw IllegalStateException(
-                "HTMX target '${id}' (selector: ${selector}) was referenced but not rendered in the DOM. " +
+                "HTMX target '${id}' (selector: ${cssSelector}) was referenced but not rendered in the DOM. " +
                 "Ensure the element with id='${id}' exists before targeting it."
             )
         }

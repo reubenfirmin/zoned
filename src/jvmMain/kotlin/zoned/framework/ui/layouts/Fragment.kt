@@ -86,7 +86,7 @@ object Fragment {
         val bodyTarget = HTMXTarget("body")
 
         setHistory()
-        return Response(Either.left(writePage {
+        return Response(Either.left(writePage(template.htmlClasses()) {
             head {
                 meta(name = "viewport", content = "width=device-width, initial-scale=1, maximum-scale=1")
                 title(title)
@@ -136,11 +136,14 @@ object Fragment {
     fun submit() = WithSubmitAction
 }
 
-inline fun writePage(crossinline block : HTML.() -> Unit): String {
+inline fun writePage(htmlClasses: List<String> = emptyList(), crossinline block : HTML.() -> Unit): String {
 
     return createHTMLDocument().html {
         // TODO switchable language
         lang = "en"
+        if (htmlClasses.isNotEmpty()) {
+            classes = htmlClasses.toSet()
+        }
         block()
     }.serialize()
 }

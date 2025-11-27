@@ -6,13 +6,14 @@ import zoned.framework.api.Parameterizer
 import zoned.framework.api.Response
 import zoned.framework.api.Route
 import zoned.framework.api.route
+import zoned.framework.ui.layouts.HtmxSelector
 import zoned.framework.ui.libs.HTMX
 import kotlin.reflect.KFunction
 
 /**
  * Set form action using a Route with optional HTMX target and swap strategy
  */
-fun FORM.action(route: Route, target: String? = null, swap: HTMX.Swap? = null) {
+fun FORM.action(route: Route, target: HtmxSelector? = null, swap: HTMX.Swap? = null) {
     val trigger = when (route.method) {
         Method.POST -> "hx-post"
         Method.GET -> "hx-get"
@@ -23,7 +24,7 @@ fun FORM.action(route: Route, target: String? = null, swap: HTMX.Swap? = null) {
     attributes[trigger] = route.url()
 
     if (target != null) {
-        attributes["hx-target"] = target
+        attributes["hx-target"] = target.cssSelector
     }
 
     if (swap != null) {
@@ -40,7 +41,7 @@ fun FORM.action(route: Route, target: String? = null, swap: HTMX.Swap? = null) {
 /**
  * Type-safe form action using method reference
  */
-fun FORM.action(handler: KFunction<Response>, target: String? = null, swap: HTMX.Swap? = null) {
+fun FORM.action(handler: KFunction<Response>, target: HtmxSelector? = null, swap: HTMX.Swap? = null) {
     val route = route(handler)
     action(route, target, swap)
 }
@@ -51,7 +52,7 @@ fun FORM.action(handler: KFunction<Response>, target: String? = null, swap: HTMX
 fun FORM.action(
     handler: KFunction<Response>,
     parameterizer: Parameterizer,
-    target: String? = null,
+    target: HtmxSelector? = null,
     swap: HTMX.Swap? = null
 ) {
     val route = route(handler).let { parameterizer.param(it) }
@@ -65,7 +66,7 @@ fun FORM.action(
 fun FORM.action(
     handler: KFunction<Response>,
     vararg params: Pair<String, Any>,
-    target: String? = null,
+    target: HtmxSelector? = null,
     swap: HTMX.Swap? = null
 ) {
     val baseRoute = route(handler)

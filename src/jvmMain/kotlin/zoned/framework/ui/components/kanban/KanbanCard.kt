@@ -1,7 +1,7 @@
 package zoned.framework.ui.components.kanban
 
 import zoned.framework.ui.components.badge
-import zoned.framework.ui.components.buttons.ButtonType.ICON_BUTTON
+import zoned.framework.ui.components.buttons.ButtonStyle.ICON_BUTTON
 import zoned.framework.ui.components.buttons.ibutton
 import zoned.framework.ui.components.icons.clockIcon
 import zoned.framework.ui.components.icons.expandIcon

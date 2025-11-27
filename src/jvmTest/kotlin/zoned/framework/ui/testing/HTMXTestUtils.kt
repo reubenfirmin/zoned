@@ -66,7 +66,7 @@ object HTMXTestUtils {
      * Assert that an element has an hx-target attribute
      */
     fun Element.assertHtmxTarget(target: HTMXTarget) {
-        assertHtmxAttribute("hx-target", target.selector)
+        assertHtmxAttribute("hx-target", target.cssSelector)
     }
 
     /**

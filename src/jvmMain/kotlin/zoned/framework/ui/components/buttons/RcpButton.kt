@@ -5,6 +5,8 @@ import kotlinx.html.*
 import kotlinx.html.ButtonType.*
 import zoned.framework.api.Response
 import zoned.framework.api.Parameterizer
+import zoned.framework.ui.layouts.HtmxInclude
+import zoned.framework.ui.layouts.HtmxSelector
 import zoned.framework.ui.components.buttons.ButtonClasses.dropdownComponentClasses
 import zoned.framework.ui.components.buttons.ButtonClasses.highlight1Classes
 import zoned.framework.ui.components.buttons.ButtonClasses.highlight2Classes
@@ -127,10 +129,10 @@ data class WithFlowbiteAttributes(val attrs: Map<String, String>): ButtonAction(
  */
 data class HTMXAction(val handler: KFunction<Response>,
                       val parameterizer: Parameterizer? = null,
-                      val includeSelector: String? = null,
+                      val include: HtmxInclude? = null,
                       val swap: HTMX.Swap? = null,
                       val swapDelay: Int? = null,
-                      val target: String? = null): ButtonAction()
+                      val target: HtmxSelector? = null): ButtonAction()
 
 data object WithNoAction: ButtonAction()
 
@@ -138,7 +140,7 @@ data object WithSubmitAction: ButtonAction()
 
 data class WithLinkAction(val link: String): ButtonAction()
 
-enum class ButtonType(val classes: String) {
+enum class ButtonStyle(val classes: String) {
     /** A cta, form submit, etc. There should generally only be one of these on a page */
     PRIMARY(primaryClasses),
     /** A secondary, form cancel, etc. There can be many of these */
@@ -152,3 +154,6 @@ enum class ButtonType(val classes: String) {
     /** A button which is intended to launch a dropdown */
     DROPDOWN(dropdownComponentClasses)
 }
+
+@Deprecated("Use ButtonStyle instead", ReplaceWith("ButtonStyle"))
+typealias ButtonType = ButtonStyle

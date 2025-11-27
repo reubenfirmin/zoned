@@ -4,6 +4,7 @@ import io.javalin.http.Context
 import zoned.framework.api.Response
 import zoned.framework.api.route
 import zoned.framework.ui.layouts.HTMXTarget
+import zoned.framework.ui.layouts.HtmxSelector
 import zoned.framework.ui.libs.HTMX
 import kotlin.reflect.KFunction
 
@@ -15,7 +16,7 @@ import kotlin.reflect.KFunction
  * ctx.htmxResponse {
  *     location = route(DashboardApi::get)
  *     trigger("refreshTable", "updateCount")
- *     retarget = "#main-content"
+ *     retarget = mainContentTarget  // Use HTMXTarget directly
  *     reswap = HTMX.Swap.INNER_HTML
  * }
  * ```
@@ -57,10 +58,10 @@ class HTMXResponseBuilder(private val ctx: Context) {
     /**
      * Set HX-Retarget header to change the target element
      */
-    var retarget: String? = null
+    var retarget: HtmxSelector? = null
         set(value) {
             if (value != null) {
-                ctx.header("HX-Retarget", value)
+                ctx.header("HX-Retarget", value.cssSelector)
             }
             field = value
         }
@@ -146,9 +147,6 @@ fun Context.htmxResponse(configure: HTMXResponseBuilder.() -> Unit) {
     HTMXResponseBuilder(this).apply(configure)
 }
 
-/**
- * Type-safe location setter using HTMXTarget
- */
-fun HTMXResponseBuilder.retarget(target: HTMXTarget) {
-    retarget = target.selector
-}
+// Note: The retarget(target: HTMXTarget) extension function has been removed.
+// Since HTMXTarget now implements HtmxSelector, you can assign directly:
+//   retarget = myTarget

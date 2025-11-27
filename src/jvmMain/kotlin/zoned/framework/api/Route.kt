@@ -61,21 +61,36 @@ data class BaseRoute(
 
 data class ParameterizedRoute(
     val route: BaseRoute,
-    private val params: MutableMap<String, String> = mutableMapOf()
+    private val pathParams: MutableMap<String, String> = mutableMapOf(),
+    private val queryParams: MutableMap<String, String> = mutableMapOf()
 ) : Route {
 
     override val method: Method
         get() = route.method
 
     override fun url(): String {
-        val paramStr = params.entries.joinToString("&") { (key, value) -> "$key=$value" }
-        return "${route.path()}${if (paramStr.isNotEmpty()) "?$paramStr" else ""}"
+        // Substitute path params in the route path
+        var path = route.path()
+        pathParams.forEach { (key, value) ->
+            path = path.replace("{$key}", value)
+        }
+
+        // Append query params
+        val paramStr = queryParams.entries.joinToString("&") { (key, value) -> "$key=$value" }
+        return "$path${if (paramStr.isNotEmpty()) "?$paramStr" else ""}"
     }
 
     fun <T> addParam(name: String, value: T): ParameterizedRoute {
-        when (value) {
-            is Enum<*> -> params[name] = value.name
-            else -> params[name] = value.toString()
+        val strValue = when (value) {
+            is Enum<*> -> value.name
+            else -> value.toString()
+        }
+
+        // Check if this is a path param or query param
+        if (route.path().contains("{$name}")) {
+            pathParams[name] = strValue
+        } else {
+            queryParams[name] = strValue
         }
         return this
     }

@@ -9,6 +9,8 @@ interface PageTemplate {
 
     fun HEAD.header()
 
+    fun htmlClasses(): List<String> = emptyList()
+
     fun bodyClasses(): List<String>
 
     fun bodyContent(ctx: Context, html: html, blocks: List<html.() -> Unit>)

@@ -4,8 +4,20 @@ import kotlinx.html.FlowContent
 import kotlinx.html.HEAD
 import kotlinx.html.script
 import kotlinx.html.unsafe
+import java.util.Properties
 
 object Bundle {
+
+    private val bundlePath: String by lazy {
+        val props = Properties()
+        val stream = Bundle::class.java.classLoader.getResourceAsStream("zoned-bundle.properties")
+        if (stream != null) {
+            props.load(stream)
+            props.getProperty("bundle.path") ?: BundleConfig.BUNDLE_PATH
+        } else {
+            BundleConfig.BUNDLE_PATH
+        }
+    }
 
     /**
      * This is our js from jsMain! Requires a gradle round trip to get this into place.
@@ -13,7 +25,7 @@ object Bundle {
      */
     fun HEAD.bundleInit() {
         script {
-            src = BundleConfig.BUNDLE_PATH
+            src = bundlePath
         }
     }
 

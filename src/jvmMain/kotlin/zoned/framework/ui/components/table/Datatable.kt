@@ -23,15 +23,12 @@ class Datatable<T, R>(classes: String,
     fun render() {
 
         table("w-full text-left border-spacing-2") {
-            require(this@Datatable.configs.sumOf { it.width } == 12) {
-                "Column sizes should total to 12 - ${this@Datatable.configs.joinToString(",") { it.width.toString() }}"
-            }
-
             if (this@Datatable.headingStyles == null) {
                 thead("text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0") {
                     tr {
                         this@Datatable.configs.forEach { config ->
-                            th(classes = "py-3 pl-2 w-${config.width}/12 pl-2") {
+                            val widthClass = config.widthClass()
+                            th(classes = "py-3 pl-2 $widthClass") {
                                 scope = ThScope.col
                                 +config.field.title
                             }
@@ -43,7 +40,7 @@ class Datatable<T, R>(classes: String,
                     tr {
                         val configsByField = this@Datatable.configs.associateBy { it.field }
                         this@Datatable.headingStyles.forEach {
-                            val width = configsByField[it.field]!!.width
+                            val width = configsByField[it.field]?.width
                             it.renderer(this, width)
                         }
                     }
@@ -83,7 +80,7 @@ class Datatable<T, R>(classes: String,
             val fullPage = records.size >= (autoScrollConfig?.expectedRows ?: 0)
 
             records.forEachIndexed { idx, record ->
-                tr(rowStyle) {
+                tr("$rowStyle sortable-row") {
                     if (fullPage && autoScrollConfig != null && idx == (autoScrollConfig.expectedRows - 5)) {
                         // XXX it's hacky to assume these exist
                         val route = autoScrollConfig.loadNextPage
@@ -98,7 +95,8 @@ class Datatable<T, R>(classes: String,
                     // for each field, render
                     configs.forEach { config ->
                         // TODO this is a hack - we can't add margin/padding to tr
-                        td("w-${config.width}/12 pl-2 " + additionalCellStyle) {
+                        val widthClass = config.widthClass()
+                        td("$widthClass pl-2 " + additionalCellStyle) {
                             config.renderer(this@td, record)
                         }
                     }
@@ -153,13 +151,29 @@ data class Field(val title: String)
 
 data class TableRecord<T, R>(val data: T, val metadata: R)
 
+/**
+ * Configuration for a table column.
+ *
+ * @param field The field metadata (title)
+ * @param visible Whether the column is visible
+ * @param width Optional width in 12ths (1-12). If null, column is fluid/auto-width.
+ * @param renderer Function to render the cell content
+ */
 data class FieldConfiguration<T, R>(
     val field: Field,
     val visible: Boolean,
-    val width: Int,
-    val renderer: TD.(TableRecord<T, R>) -> Unit)
+    val width: Int? = null,
+    val renderer: TD.(TableRecord<T, R>) -> Unit
+) {
+    /**
+     * Returns the Tailwind width class for this column.
+     * If width is specified, uses w-N/12 grid system.
+     * If width is null, returns empty string for fluid/auto width.
+     */
+    fun widthClass(): String = width?.let { "w-$it/12" } ?: ""
+}
 
 data class FieldHeadingConfiguration (
     val field: Field,
-    val renderer: TR.(Int) -> Unit
+    val renderer: TR.(Int?) -> Unit
 )

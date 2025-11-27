@@ -7,8 +7,11 @@ import com.google.inject.name.Named
 import io.javalin.http.Context
 import io.javalin.http.Cookie
 import io.javalin.http.SameSite
+import org.slf4j.LoggerFactory
 import zoned.framework.api.*
 import zoned.framework.auth.JWTAuthentication
+import zoned.framework.db.FormObject
+import zoned.framework.form.ConvertedEntity
 import zoned.framework.auth.Person
 import zoned.framework.auth.Role
 import zoned.framework.email.PostmarkEmailer
@@ -17,6 +20,13 @@ import zoned.framework.util.toUUID
 import kotlinx.html.*
 import java.nio.charset.Charset
 import java.util.*
+
+/**
+ * Claim keys for magic link tokens.
+ * These are distinct from session token claims (USER_ID, ACCOUNT_ID, ROLE).
+ */
+const val MAGIC_LINK_EMAIL = "email"
+const val MAGIC_LINK_USER_ID = "userId"
 
 /**
  * Magic link authentication API.
@@ -34,20 +44,24 @@ class MagicLinkAuth @Inject constructor(
     @param:Named("baseUrl") private val baseUrl: String
 ) : Api {
 
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     override val basePath = "/magiclink"
     override val baseRoles = listOf(Role.ANON)
 
     @POST("/request")
-    fun requestMagicLink(ctx: Context, request: MagicLinkRequest): Response {
-        val email = request.email
+    fun requestMagicLink(ctx: Context, request: ConvertedEntity<MagicLinkRequest>): Response {
+        val email = request.entity()?.email ?: return ctx.fragment {
+            p { +"Email is required" }
+        }
         val user = provider.findUserByEmail(email)
         val isNewUser = user == null
 
         // Create short-lived token
         val token = jwt.createExpiringToken(
             mapOf(
-                "email" to email,
-                "userId" to (user?.id?.toString() ?: "")
+                MAGIC_LINK_EMAIL to email,
+                MAGIC_LINK_USER_ID to (user?.id?.toString() ?: "")
             ),
             provider.tokenExpirySeconds()
         )
@@ -93,16 +107,21 @@ class MagicLinkAuth @Inject constructor(
         val token = ctx.queryParam("token")
 
         if (token == null) {
+            logger.warn("Magic link verification failed: no token provided")
             return provider.renderTokenExpiredPage(ctx)
                 ?: defaultExpiredPage(ctx)
         }
 
         return try {
             // Extract and validate token
-            val claims = jwt.extractClaims(token, listOf("email", "userId"))
-            val userId = claims["userId"]?.toUUID()
+            val claims = jwt.extractClaims(token, listOf(MAGIC_LINK_EMAIL, MAGIC_LINK_USER_ID))
+            val email = claims[MAGIC_LINK_EMAIL]
+            val userIdStr = claims[MAGIC_LINK_USER_ID]
+            val userId = userIdStr?.toUUID()
 
             if (userId == null) {
+                logger.warn("Magic link verification failed: claim '$MAGIC_LINK_USER_ID' missing or invalid. " +
+                    "email=$email, userIdStr=$userIdStr, availableClaims=${claims.keys}")
                 return provider.renderTokenExpiredPage(ctx)
                     ?: defaultExpiredPage(ctx)
             }
@@ -132,9 +151,11 @@ class MagicLinkAuth @Inject constructor(
             return ctx.redirect(provider.loginSuccessRoute(user))
 
         } catch (e: TokenExpiredException) {
+            logger.warn("Magic link verification failed: token expired", e)
             provider.renderTokenExpiredPage(ctx)
                 ?: defaultExpiredPage(ctx)
         } catch (e: Exception) {
+            logger.error("Magic link verification failed: unexpected error", e)
             provider.renderTokenExpiredPage(ctx)
                 ?: defaultExpiredPage(ctx)
         }
@@ -217,4 +238,4 @@ class MagicLinkAuth @Inject constructor(
 /**
  * Request body for magic link request.
  */
-data class MagicLinkRequest(val email: String)
+data class MagicLinkRequest(val email: String) : FormObject
