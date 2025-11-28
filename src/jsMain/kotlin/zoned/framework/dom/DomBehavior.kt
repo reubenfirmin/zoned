@@ -7,7 +7,21 @@ import web.events.EventHandler
 import web.window.window
 
 /**
- * Bridge between the kotlinx.html dsl and kotlinjs. Attaches events to the DOM once the document is rendered.
+ * Bridge between the kotlinx.html DSL and kotlin-js. Manages deferred behaviors that need
+ * to run after elements are added to the DOM.
+ *
+ * ## Execution Order
+ * When elements are added to the DOM, [flush] is called which executes in this order:
+ * 1. **Behaviors** (ref bindings) - populates [Ref] objects with their elements
+ * 2. **Display callbacks** - sets up intersection observers for lazy loading
+ * 3. **Mount callbacks** - runs [onMount] callbacks
+ *
+ * This order is critical: mount callbacks often access refs, so refs must be bound first.
+ *
+ * ## How it works
+ * - DSL execution queues behaviors and callbacks (elements not yet in DOM)
+ * - MutationObserver detects when elements are added to DOM
+ * - [flush] is called to execute queued items in the correct order
  */
 object DomBehavior {
     private val behaviors = mutableListOf<Pair<String, (Element) -> Unit>>()
@@ -73,18 +87,14 @@ object DomBehavior {
             threshold = arrayOf(0.0)
         ))
 
+        // IMPORTANT: We must call flush() which binds refs BEFORE running mount callbacks.
+        // Mount callbacks often access refs, so the order matters.
         mutationObserver = MutationObserver { mutations, _ ->
             var shouldFlush = false
             mutations.forEach { mutation ->
                 when (mutation.type) {
                     MutationRecordType.childList -> {
-                        mutation.addedNodes.forEach { node ->
-                            if (node is Element) {
-                                executeMountCallback(node.id)
-                                shouldFlush = true
-                            }
-                        }
-                        if (mutation.removedNodes.length > 0) {
+                        if (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0) {
                             shouldFlush = true
                         }
                     }
@@ -93,9 +103,7 @@ object DomBehavior {
                             shouldFlush = true
                         }
                     }
-                    else -> {
-                        console.log(mutation)
-                    }
+                    else -> {}
                 }
             }
             if (shouldFlush) {

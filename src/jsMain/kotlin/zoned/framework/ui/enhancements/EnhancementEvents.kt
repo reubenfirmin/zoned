@@ -1,6 +1,7 @@
 package zoned.framework.ui.enhancements
 
 import web.dom.Document
+import web.events.Event
 import web.events.EventType
 import web.events.addEventListener
 import web.html.HTMLElement
@@ -37,46 +38,51 @@ import web.uievents.MouseEvent
  * ```
  */
 
+private inline fun <reified E : Event> HTMLElement.addTypedEventListener(
+    type: String,
+    noinline handler: (E) -> Unit
+) = addEventListener(EventType<E>(type), handler)
+
 // Mouse events
 fun HTMLElement.onClick(handler: (MouseEvent) -> Unit) =
-    addEventListener(EventType("click"), handler)
+    addTypedEventListener("click", handler)
 
 fun HTMLElement.onMouseEnter(handler: (MouseEvent) -> Unit) =
-    addEventListener(EventType("mouseenter"), handler)
+    addTypedEventListener("mouseenter", handler)
 
 fun HTMLElement.onMouseLeave(handler: (MouseEvent) -> Unit) =
-    addEventListener(EventType("mouseleave"), handler)
+    addTypedEventListener("mouseleave", handler)
 
 fun HTMLElement.onMouseOver(handler: (MouseEvent) -> Unit) =
-    addEventListener(EventType("mouseover"), handler)
+    addTypedEventListener("mouseover", handler)
 
 fun HTMLElement.onMouseOut(handler: (MouseEvent) -> Unit) =
-    addEventListener(EventType("mouseout"), handler)
+    addTypedEventListener("mouseout", handler)
 
 fun HTMLElement.onContextMenu(handler: (MouseEvent) -> Unit) =
-    addEventListener(EventType("contextmenu"), handler)
+    addTypedEventListener("contextmenu", handler)
 
 // Keyboard events
 fun HTMLElement.onKeyDown(handler: (KeyboardEvent) -> Unit) =
-    addEventListener(EventType("keydown"), handler)
+    addTypedEventListener("keydown", handler)
 
 fun HTMLElement.onKeyUp(handler: (KeyboardEvent) -> Unit) =
-    addEventListener(EventType("keyup"), handler)
+    addTypedEventListener("keyup", handler)
 
 // Input events
 fun HTMLElement.onInput(handler: (web.uievents.InputEvent) -> Unit) =
-    addEventListener(EventType("input"), handler)
+    addTypedEventListener("input", handler)
 
 // Form element events
 fun web.html.HTMLInputElement.onChange(handler: (web.events.Event) -> Unit) =
-    addEventListener(EventType("change"), handler)
+    addEventListener(EventType<Event>("change"), handler)
 
 fun web.html.HTMLFormElement.onReset(handler: (web.events.Event) -> Unit) =
-    addEventListener(EventType("reset"), handler)
+    addEventListener(EventType<Event>("reset"), handler)
 
 // Document-level events
 fun Document.onClick(handler: (MouseEvent) -> Unit) =
-    addEventListener(EventType("click"), handler)
+    addEventListener(EventType<MouseEvent>("click"), handler)
 
 fun Document.onKeyDown(handler: (KeyboardEvent) -> Unit) =
-    addEventListener(EventType("keydown"), handler)
+    addEventListener(EventType<KeyboardEvent>("keydown"), handler)

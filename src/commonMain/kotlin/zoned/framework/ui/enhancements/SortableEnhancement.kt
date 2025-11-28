@@ -18,6 +18,12 @@ object SortableEnhancement : Enhancement<SortableConfig> {
 @Serializable
 data class SortableConfig(
     /**
+     * ID to set on the sortable container element.
+     * Useful for identifying the drop target in onEnd callbacks.
+     */
+    var containerId: String? = null,
+
+    /**
      * Drag-and-drop group name. Elements with the same group can be dragged between each other.
      */
     var group: String = "default",
@@ -81,5 +87,12 @@ data class SortableConfig(
     /**
      * CSS class applied to drop targets when an item is dragged over them
      */
-    var dropTargetClass: String = "sortable-drag-over"
+    var dropTargetClass: String = "sortable-drag-over",
+
+    /**
+     * CSS selector for elements that should NOT trigger drag (e.g., links, buttons).
+     * Clicks on these elements will work normally instead of starting a drag.
+     * Default: "a, button, input, select, textarea" to allow interaction with common elements.
+     */
+    var filter: String = "a, button, input, select, textarea"
 ) : EnhancementConfig

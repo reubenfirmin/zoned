@@ -23,3 +23,12 @@ fun <T : Element> HTMLCollection<T>.firstOrNull(): T? {
 fun getHtmlElement(id: String): HTMLElement? {
     return document.getElementById(id)?.unsafeCast<HTMLElement>()
 }
+
+/**
+ * Append content to document.body using the DSL.
+ * Useful for modals, tooltips, and other body-level elements.
+ */
+fun addToBody(block: TagConsumer<HTMLElement>.() -> Unit) {
+    val body = document.body?.unsafeCast<HTMLElement>() ?: error("document.body not available")
+    body.appendTo().block()
+}

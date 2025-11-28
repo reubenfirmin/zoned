@@ -145,9 +145,9 @@ class ZonedPlugin : Plugin<Project> {
                         tmux set-option -q pane-border-format " #[fg=#9ca3af]#{pane_title}#[default] "
 
                         # Key binding: Ctrl+E to copy last exception to clipboard
-                        # Captures without color codes (-e removed), finds last ERROR line
+                        # Captures with -J to join wrapped lines, finds last ERROR line
                         # Uses wl-copy (Wayland) or xclip (X11) or xsel as fallback
-                        tmux bind-key -n C-e run-shell 'tmux capture-pane -pS -3000 > /tmp/zoned-pane.txt 2>/dev/null; LINE=${'$'}(grep -n "ERROR " /tmp/zoned-pane.txt 2>/dev/null | tail -1 | cut -d: -f1); if [ -z "${'$'}LINE" ]; then LINE=${'$'}(grep -n "FAILURE:\|BUILD FAILED" /tmp/zoned-pane.txt 2>/dev/null | tail -1 | cut -d: -f1); fi; if [ -n "${'$'}LINE" ]; then tail -n +${'$'}LINE /tmp/zoned-pane.txt 2>/dev/null | head -80 | { wl-copy 2>/dev/null || xclip -selection clipboard 2>/dev/null || xsel --clipboard --input 2>/dev/null; }; tmux display-message "Exception copied to clipboard"; else tmux display-message "No exception found"; fi'
+                        tmux bind-key -n C-e run-shell 'tmux capture-pane -pJS -3000 > /tmp/zoned-pane.txt 2>/dev/null; LINE=${'$'}(grep -n "ERROR " /tmp/zoned-pane.txt 2>/dev/null | tail -1 | cut -d: -f1); if [ -z "${'$'}LINE" ]; then LINE=${'$'}(grep -n "FAILURE:\|BUILD FAILED" /tmp/zoned-pane.txt 2>/dev/null | tail -1 | cut -d: -f1); fi; if [ -n "${'$'}LINE" ]; then tail -n +${'$'}LINE /tmp/zoned-pane.txt 2>/dev/null | head -150 | { wl-copy 2>/dev/null || xclip -selection clipboard 2>/dev/null || xsel --clipboard --input 2>/dev/null; }; tmux display-message "Exception copied to clipboard"; else tmux display-message "No exception found"; fi'
                     }
 
                     # Update git stats in top bar
@@ -350,7 +350,7 @@ class ZonedPlugin : Plugin<Project> {
                         local compile_start=${'$'}(date +%s%3N 2>/dev/null || date +%s)
                         # Compile both JVM and JS (skip slow webpack bundling), include build-style for CSS
                         local build_output
-                        build_output=${'$'}(./gradlew --parallel --build-cache ${'$'}refresh_flag compileKotlinJvm compileKotlinJs build-style \
+                        build_output=${'$'}(./gradlew --console=plain --parallel --build-cache ${'$'}refresh_flag compileKotlinJvm compileKotlinJs build-style \
                             -x jsBrowserProductionWebpack -x jsProductionExecutableCompileSync \
                             -x compileProductionExecutableKotlinJs -x jsBrowserDistribution 2>&1)
                         local build_status=${'$'}?

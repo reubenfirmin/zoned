@@ -4,9 +4,9 @@ import js.objects.Record
 import js.objects.jso
 import kotlinx.browser.document
 import kotlinx.browser.window
-import org.w3c.dom.Element
 import org.w3c.dom.parsing.DOMParser
 import org.w3c.xhr.XMLHttpRequest
+import web.dom.Element
 
 // this is here for the initial import - see https://htmx.org/docs/#webpack
 @JsModule("htmx.org/dist/htmx.esm.js")
@@ -26,6 +26,12 @@ external interface HTMX {
      * @param options Object with target, swap, values, etc.
      */
     fun ajax(method: String, url: String, options: dynamic)
+
+    /**
+     * Process an element and its children for HTMX attributes.
+     * Call this after dynamically adding elements that have hx-* attributes.
+     */
+    fun process(element: Element)
 }
 
 /**

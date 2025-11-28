@@ -85,6 +85,13 @@ data class SelectableTableConfig(
     var dragHandle: String? = null,
 
     /**
+     * CSS selector for elements that should NOT trigger drag (e.g., links, buttons).
+     * Clicks on these elements will work normally instead of starting a drag.
+     * Default: "a, button, input, select, textarea" to allow interaction with common elements.
+     */
+    var dragFilter: String = "a, button, input, select, textarea",
+
+    /**
      * URL to POST when drop completes. Receives: itemIds (comma-separated), targetContainerId
      */
     var onDropUrl: String? = null,

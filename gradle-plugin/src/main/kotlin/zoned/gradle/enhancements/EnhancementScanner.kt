@@ -25,8 +25,10 @@ class EnhancementScanner(private val logger: Logger) {
             .forEach { file ->
                 val content = file.readText()
 
-                // Look for @ClientEnhancement annotation
-                if (content.contains("@ClientEnhancement")) {
+                // Look for @ClientEnhancement annotation followed by object declaration
+                // Use regex to avoid matching examples in documentation
+                val enhancementPattern = """@ClientEnhancement(?:\s*\([^)]*\))?\s*\nobject\s+(\w+)\s*:\s*Enhancement<""".toRegex()
+                if (enhancementPattern.containsMatchIn(content)) {
                     val enhancement = parseEnhancement(file, content)
                     if (enhancement != null && !seenNames.contains(enhancement.name)) {
                         enhancements.add(enhancement)
@@ -66,11 +68,15 @@ class EnhancementScanner(private val logger: Logger) {
         val nameRegex = """override\s+val\s+name\s*=\s*"([\w-]+)"""".toRegex()
         val name = nameRegex.find(content)?.groupValues?.get(1) ?: objectName.lowercase()
 
+        // Check if @ClientEnhancement(clientBuildsContent = true) is specified
+        val clientBuildsContent = content.contains("clientBuildsContent\\s*=\\s*true".toRegex())
+
         return DiscoveredEnhancement(
             name = name,
             objectName = objectName,
             configClass = configClass,
-            packageName = packageName
+            packageName = packageName,
+            clientBuildsContent = clientBuildsContent
         )
     }
 }
