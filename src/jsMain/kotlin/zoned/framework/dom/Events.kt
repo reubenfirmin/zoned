@@ -2,12 +2,15 @@ package zoned.framework.dom
 
 import kotlinx.html.CommonAttributeGroupFacade
 import kotlinx.html.id
+import web.dom.document
 import web.events.Event
 import web.events.EventType
 import web.events.addEventListener
+import web.html.HTMLElement
 import web.uievents.InputEvent
 import web.uievents.KeyboardEvent
 import web.uievents.MouseEvent
+import zoned.framework.interop.onDestroy as elementOnDestroy
 import kotlin.random.Random
 
 private fun generateRandomString(length: Int = 7): String {
@@ -70,7 +73,17 @@ fun CommonAttributeGroupFacade.onDisplay(handler: () -> Unit) {
  * Executed when element is added to dom
  */
 fun CommonAttributeGroupFacade.onMount(handler: () -> Unit) {
-    console.log("Checking for id")
     val id = ensureId()
     DomBehavior.queueMount(id, handler)
+}
+
+/**
+ * Executed when element is removed from dom.
+ * Useful for cleanup (timers, event listeners, etc.)
+ */
+fun CommonAttributeGroupFacade.onDestroy(handler: () -> Unit) {
+    val id = ensureId()
+    DomBehavior.queueMount(id) {
+        (document.getElementById(id) as? HTMLElement)?.elementOnDestroy(handler)
+    }
 }

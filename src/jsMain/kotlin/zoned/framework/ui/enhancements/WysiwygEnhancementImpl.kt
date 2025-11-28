@@ -1,9 +1,15 @@
 package zoned.framework.ui.enhancements
 
 import kotlinx.browser.document
-import kotlinx.css.*
+import kotlinx.html.*
+import web.html.HTMLElement
 import web.html.HTMLFormElement
 import web.html.HTMLInputElement
+import zoned.framework.ui.enhancements.onClick as htmlOnClick
+import zoned.framework.ui.enhancements.onInput as htmlOnInput
+import zoned.framework.ui.enhancements.onMouseEnter as htmlOnMouseEnter
+import zoned.framework.ui.enhancements.onMouseLeave as htmlOnMouseLeave
+import zoned.framework.ui.enhancements.onKeyDown as htmlOnKeyDown
 
 /**
  * Sanitize HTML to be valid XHTML (self-closing tags)
@@ -20,166 +26,138 @@ private fun sanitizeHtml(html: String): String {
  * Uses contenteditable with basic formatting toolbar.
  */
 fun initWysiwygEnhancement(element: EnhancementElement, config: WysiwygConfig) {
+    val editorId = "wysiwyg-editor-${config.inputName}"
+    val hiddenInputId = "wysiwyg-hidden-${config.inputName}"
+    val toolbarId = "wysiwyg-toolbar-${config.inputName}"
+
     try {
-        // Clear and setup container
-        element.clear()
-        element.css {
-            display = Display.flex
-            flexDirection = FlexDirection.column
-        }
+        val container = element.raw
+        container.innerHTML = ""
+        container.style.display = "flex"
+        container.style.flexDirection = "column"
 
-        // Create toolbar
-        val toolbar = element.create.div {
-            className = "wysiwyg-toolbar"
-            css {
-                display = Display.flex
-                gap = 4.px
-                padding = Padding(8.px)
-                backgroundColor = Color("#1f2937")
-                border = Border(1.px, BorderStyle.solid, Color("#4b5563"))
-                borderTopLeftRadius = 8.px
-                borderTopRightRadius = 8.px
-                borderBottomLeftRadius = 0.px
-                borderBottomRightRadius = 0.px
-                flexWrap = FlexWrap.wrap
-            }
-        }
-
-        // Add toolbar buttons based on config
         val buttons = when (config.toolbar) {
-            "full" -> arrayOf(
-                arrayOf("bold", "B", "Bold", "font-weight: bold;"),
-                arrayOf("italic", "I", "Italic", "font-style: italic;"),
-                arrayOf("underline", "U", "Underline", "text-decoration: underline;"),
-                arrayOf("strikeThrough", "S", "Strikethrough", "text-decoration: line-through;"),
-                arrayOf("separator", "", "", ""),
-                arrayOf("insertUnorderedList", "•", "Bullet List", ""),
-                arrayOf("insertOrderedList", "1.", "Numbered List", ""),
-                arrayOf("separator", "", "", ""),
-                arrayOf("removeFormat", "✕", "Clear Formatting", "")
+            "full" -> listOf(
+                listOf("bold", "B", "Bold", "font-weight: bold;"),
+                listOf("italic", "I", "Italic", "font-style: italic;"),
+                listOf("underline", "U", "Underline", "text-decoration: underline;"),
+                listOf("strikeThrough", "S", "Strikethrough", "text-decoration: line-through;"),
+                listOf("separator", "", "", ""),
+                listOf("insertUnorderedList", "•", "Bullet List", ""),
+                listOf("insertOrderedList", "1.", "Numbered List", ""),
+                listOf("separator", "", "", ""),
+                listOf("removeFormat", "✕", "Clear Formatting", "")
             )
-            "standard" -> arrayOf(
-                arrayOf("bold", "B", "Bold", "font-weight: bold;"),
-                arrayOf("italic", "I", "Italic", "font-style: italic;"),
-                arrayOf("underline", "U", "Underline", "text-decoration: underline;"),
-                arrayOf("separator", "", "", ""),
-                arrayOf("insertUnorderedList", "•", "Bullet List", ""),
-                arrayOf("insertOrderedList", "1.", "Numbered List", "")
+            "standard" -> listOf(
+                listOf("bold", "B", "Bold", "font-weight: bold;"),
+                listOf("italic", "I", "Italic", "font-style: italic;"),
+                listOf("underline", "U", "Underline", "text-decoration: underline;"),
+                listOf("separator", "", "", ""),
+                listOf("insertUnorderedList", "•", "Bullet List", ""),
+                listOf("insertOrderedList", "1.", "Numbered List", "")
             )
-            else -> arrayOf( // minimal
-                arrayOf("bold", "B", "Bold", "font-weight: bold;"),
-                arrayOf("italic", "I", "Italic", "font-style: italic;"),
-                arrayOf("insertUnorderedList", "•", "Bullet List", "")
+            else -> listOf(
+                listOf("bold", "B", "Bold", "font-weight: bold;"),
+                listOf("italic", "I", "Italic", "font-style: italic;"),
+                listOf("insertUnorderedList", "•", "Bullet List", "")
             )
         }
 
-        buttons.forEach { btn ->
-            val command = btn[0]
-            val label = btn[1]
-            val title = btn[2]
-            val extraStyle = btn[3]
+        // Build DOM structure first
+        element.appendTo().apply {
+            // Toolbar
+            div("wysiwyg-toolbar") {
+                id = toolbarId
+                style = "display: flex; gap: 4px; padding: 8px; background-color: #1f2937; " +
+                        "border: 1px solid #4b5563; border-radius: 8px 8px 0 0; flex-wrap: wrap;"
 
-            if (command == "separator") {
-                val sep = element.create.div {
-                    css {
-                        width = 1.px
-                        height = 24.px
-                        backgroundColor = Color("#4b5563")
-                        margin = Margin(0.px, 4.px)
+                buttons.forEachIndexed { index, btn ->
+                    val command = btn[0]
+                    val label = btn[1]
+                    val btnTitle = btn[2]
+                    val extraStyle = btn[3]
+
+                    if (command == "separator") {
+                        div {
+                            style = "width: 1px; height: 24px; background-color: #4b5563; margin: 0 4px;"
+                        }
+                    } else {
+                        button(type = ButtonType.button) {
+                            id = "wysiwyg-btn-${config.inputName}-$index"
+                            attributes["data-command"] = command
+                            +label
+                            title = btnTitle
+                            val baseStyle = "padding: 4px 8px; min-width: 28px; background-color: #374151; " +
+                                    "border: 1px solid #4b5563; border-radius: 4px; color: #e5e7eb; " +
+                                    "cursor: pointer; font-size: 14px;"
+                            style = if (extraStyle.isNotBlank()) "$baseStyle $extraStyle" else baseStyle
+                        }
                     }
                 }
-                toolbar.appendChild(sep)
-            } else {
-                val button = element.create.button {
-                    type = "button"
-                    textContent = label
-                    setAttribute("title", title)
-                    data("command", command)
-                    css {
-                        padding = Padding(4.px, 8.px)
-                        minWidth = 28.px
-                        backgroundColor = Color("#374151")
-                        border = Border(1.px, BorderStyle.solid, Color("#4b5563"))
-                        borderRadius = 4.px
-                        color = Color("#e5e7eb")
-                        cursor = Cursor.pointer
-                        fontSize = 14.px
-                    }
-                    // Apply extra style via raw attribute if provided
-                    if (extraStyle.isNotBlank()) {
-                        val currentStyle = raw.getAttribute("style") ?: ""
-                        raw.setAttribute("style", "$currentStyle $extraStyle")
-                    }
-                    onMouseOver { raw.asDynamic().style.background = "#4b5563" }
-                    onMouseOut { raw.asDynamic().style.background = "#374151" }
+            }
+
+            // Hidden input
+            input(type = InputType.hidden, name = config.inputName) {
+                id = hiddenInputId
+                value = config.initialContent
+            }
+
+            // Editor area
+            div("wysiwyg-editor") {
+                id = editorId
+                contentEditable = true
+                style = "min-height: ${config.minHeight}px; padding: 12px; " +
+                        "border: 1px solid #4b5563; border-top-width: 0; " +
+                        "border-radius: 0 0 8px 8px; background-color: #374151; " +
+                        "color: #e5e7eb; overflow-y: auto; outline: none;"
+
+                if (config.initialContent.isNotBlank()) {
+                    unsafe { +config.initialContent }
                 }
-                toolbar.appendChild(button)
+                if (config.placeholder.isNotBlank()) {
+                    attributes["data-placeholder"] = config.placeholder
+                }
             }
         }
 
-        element.appendChild(toolbar)
+        // Get element references after DOM is built
+        val editor = document.getElementById(editorId) as? HTMLElement
+        val hiddenInput = document.getElementById(hiddenInputId) as? HTMLInputElement
+        val toolbar = document.getElementById(toolbarId) as? HTMLElement
 
-        // Create hidden input to store HTML content
-        val hiddenInput = element.create.input {
-            type = "hidden"
-            name = config.inputName
-            value = config.initialContent
-        }
+        // Attach toolbar button handlers
+        toolbar?.querySelectorAll("button[data-command]")?.let { nodeList ->
+            for (i in 0 until nodeList.length) {
+                val btn = nodeList.item(i) as? HTMLElement ?: continue
+                val command = btn.getAttribute("data-command") ?: continue
 
-        // Create editor area
-        val editor = element.create.div {
-            contentEditable = "true"
-            className = "wysiwyg-editor"
-            css {
-                minHeight = config.minHeight.px
-                padding = Padding(12.px)
-                border = Border(1.px, BorderStyle.solid, Color("#4b5563"))
-                borderTopWidth = 0.px
-                borderTopLeftRadius = 0.px
-                borderTopRightRadius = 0.px
-                borderBottomLeftRadius = 8.px
-                borderBottomRightRadius = 8.px
-                backgroundColor = Color("#374151")
-                color = Color("#e5e7eb")
-                overflowY = Overflow.auto
-                outline = Outline.none
-            }
-            if (config.initialContent.isNotBlank()) {
-                innerHTML = config.initialContent
-            }
-            if (config.placeholder.isNotBlank()) {
-                data("placeholder", config.placeholder)
-            }
-            // Update hidden input on content change
-            onInput(fun() {
-                (hiddenInput as? HTMLInputElement)?.value = sanitizeHtml(raw.innerHTML)
-            })
-            // Ctrl+Enter to submit form
-            onKeyDown { e ->
-                if (e.ctrlKey == true && e.key == "Enter") {
+                btn.htmlOnMouseEnter { _ ->
+                    btn.style.backgroundColor = "#4b5563"
+                }
+                btn.htmlOnMouseLeave { _ ->
+                    btn.style.backgroundColor = "#374151"
+                }
+                btn.htmlOnClick { e ->
                     e.preventDefault()
-                    (hiddenInput as? HTMLInputElement)?.value = sanitizeHtml(raw.innerHTML)
-                    (raw.closest("form") as? HTMLFormElement)?.requestSubmit()
-                    // Clear editor after submit
-                    raw.innerHTML = ""
-                    (hiddenInput as? HTMLInputElement)?.value = ""
+                    editor?.focus()
+                    document.asDynamic().execCommand(command, false, "")
                 }
             }
         }
 
-        element.appendChild(editor)
-        element.appendChild(hiddenInput)
+        // Attach editor handlers
+        editor?.htmlOnInput { _ ->
+            hiddenInput?.value = sanitizeHtml(editor.innerHTML)
+        }
 
-        // Wire up toolbar buttons
-        val toolbarButtons = toolbar.querySelectorAll("button[data-command]")
-        for (i in 0 until toolbarButtons.length) {
-            val btn = toolbarButtons.item(i)
-            val command = btn?.asDynamic()?.getAttribute("data-command") as? String ?: continue
-
-            btn.asDynamic().onclick = { e: dynamic ->
+        editor?.htmlOnKeyDown { e ->
+            // Support both Ctrl+Enter and Alt+Enter for submit
+            if ((e.ctrlKey || e.altKey) && e.key == "Enter") {
                 e.preventDefault()
-                editor.asDynamic().focus()
-                document.asDynamic().execCommand(command, false, "")
+                hiddenInput?.value = sanitizeHtml(editor.innerHTML)
+                (editor.closest("form") as? HTMLFormElement)?.requestSubmit()
+                editor.innerHTML = ""
+                hiddenInput?.value = ""
             }
         }
 

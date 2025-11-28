@@ -1,7 +1,7 @@
 package zoned.framework.ui.enhancements
 
-import kotlinx.browser.document
 import web.dom.Element
+import web.dom.document
 import web.html.HTMLElement
 import zoned.framework.libs.HTMXHelper
 
@@ -12,7 +12,7 @@ import zoned.framework.libs.HTMXHelper
 fun makeContextMenuEnhancement(element: Element, config: ContextMenuConfig) {
     val htmlElement = element as HTMLElement
 
-    htmlElement.asDynamic().oncontextmenu = { event: dynamic ->
+    htmlElement.onContextMenu { event ->
         event.preventDefault()
 
         // Look for parent with data-selected-ids (from SelectableTable enhancement)
@@ -57,22 +57,20 @@ fun makeContextMenuEnhancement(element: Element, config: ContextMenuConfig) {
         HTMXHelper.get(url, config.menuTarget)
 
         // Position the menu at click location
-        val x = event.clientX as Int
-        val y = event.clientY as Int
-        positionContextMenu(config.menuTarget, x, y)
+        positionContextMenu(config.menuTarget, event.clientX, event.clientY)
     }
 
-    // Close menu on click anywhere (use addEventListener to not override other handlers)
-    document.asDynamic().addEventListener("click", { _: dynamic ->
+    // Close menu on click anywhere
+    document.onClick { _ ->
         hideContextMenu(config.menuTarget)
-    })
+    }
 
     // Close menu on escape key
-    document.asDynamic().addEventListener("keydown", { event: dynamic ->
+    document.onKeyDown { event ->
         if (event.key == "Escape") {
             hideContextMenu(config.menuTarget)
         }
-    })
+    }
 }
 
 private fun positionContextMenu(selector: String, x: Int, y: Int) {

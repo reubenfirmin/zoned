@@ -11,9 +11,14 @@ import zoned.framework.ui.libs.HTMX
 import kotlin.reflect.KFunction
 
 /**
- * Set form action using a Route with optional HTMX target and swap strategy
+ * Set form action using a Route with optional HTMX target, swap strategy, and encoding
  */
-fun FORM.action(route: Route, target: HtmxSelector? = null, swap: HTMX.Swap? = null) {
+fun FORM.action(
+    route: Route,
+    target: HtmxSelector? = null,
+    swap: HTMX.Swap? = null,
+    encoding: HTMX.Encoding? = null
+) {
     val trigger = when (route.method) {
         Method.POST -> "hx-post"
         Method.GET -> "hx-get"
@@ -36,14 +41,23 @@ fun FORM.action(route: Route, target: HtmxSelector? = null, swap: HTMX.Swap? = n
         }
         attributes["hx-swap"] = swapValue
     }
+
+    if (encoding != null) {
+        attributes["hx-encoding"] = encoding.value
+    }
 }
 
 /**
  * Type-safe form action using method reference
  */
-fun FORM.action(handler: KFunction<Response>, target: HtmxSelector? = null, swap: HTMX.Swap? = null) {
+fun FORM.action(
+    handler: KFunction<Response>,
+    target: HtmxSelector? = null,
+    swap: HTMX.Swap? = null,
+    encoding: HTMX.Encoding? = null
+) {
     val route = route(handler)
-    action(route, target, swap)
+    action(route, target, swap, encoding)
 }
 
 /**
@@ -53,10 +67,11 @@ fun FORM.action(
     handler: KFunction<Response>,
     parameterizer: Parameterizer,
     target: HtmxSelector? = null,
-    swap: HTMX.Swap? = null
+    swap: HTMX.Swap? = null,
+    encoding: HTMX.Encoding? = null
 ) {
     val route = route(handler).let { parameterizer.param(it) }
-    action(route, target, swap)
+    action(route, target, swap, encoding)
 }
 
 /**
@@ -67,7 +82,8 @@ fun FORM.action(
     handler: KFunction<Response>,
     vararg params: Pair<String, Any>,
     target: HtmxSelector? = null,
-    swap: HTMX.Swap? = null
+    swap: HTMX.Swap? = null,
+    encoding: HTMX.Encoding? = null
 ) {
     val baseRoute = route(handler)
     val finalRoute: Route = if (params.isNotEmpty()) {
@@ -79,5 +95,5 @@ fun FORM.action(
     } else {
         baseRoute
     }
-    action(finalRoute, target, swap)
+    action(finalRoute, target, swap, encoding)
 }

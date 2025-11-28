@@ -83,18 +83,25 @@ class ZonedPlugin : Plugin<Project> {
                         done
                         zoned_branch=${'$'}([ -n "${'$'}zoned_dir" ] && git -C "${'$'}zoned_dir" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?")
 
-                        # Get diff stats vs main (or master)
-                        local base_branch="main"
-                        git -C . rev-parse --verify main &>/dev/null || base_branch="master"
-                        diff_stats=${'$'}(git -C . diff --shortstat ${'$'}base_branch 2>/dev/null | sed 's/[^0-9,+-]//g' | awk -F',' '{
-                            ins=0; del=0;
-                            for(i=1;i<=NF;i++) {
-                                if(${'$'}i ~ /\+/) { gsub(/[^0-9]/,"",${'$'}i); ins=${'$'}i }
-                                if(${'$'}i ~ /-/) { gsub(/[^0-9]/,"",${'$'}i); del=${'$'}i }
-                            }
-                            if(ins>0 || del>0) printf "+%d -%d", ins, del
-                        }')
-                        [ -z "${'$'}diff_stats" ] && diff_stats="+0 -0"
+                        # Get diff stats vs origin/main (or origin/master)
+                        local base_branch="origin/main"
+                        git -C . rev-parse --verify origin/main &>/dev/null || base_branch="origin/master"
+
+                        # Get insertions/deletions from tracked file changes
+                        local tracked_stats=${'$'}(git -C . diff --shortstat ${'$'}base_branch 2>/dev/null)
+                        local tracked_ins=${'$'}(echo "${'$'}tracked_stats" | grep -oP '\d+(?= insertion)' || echo "0")
+                        local tracked_del=${'$'}(echo "${'$'}tracked_stats" | grep -oP '\d+(?= deletion)' || echo "0")
+                        [ -z "${'$'}tracked_ins" ] && tracked_ins=0
+                        [ -z "${'$'}tracked_del" ] && tracked_del=0
+
+                        # Count lines in untracked files (new files not yet added to git)
+                        local untracked_lines=${'$'}(git -C . ls-files --others --exclude-standard | xargs -r wc -l 2>/dev/null | tail -1 | awk '{print ${'$'}1}')
+                        [ -z "${'$'}untracked_lines" ] && untracked_lines=0
+
+                        # Combine tracked + untracked
+                        local total_ins=${'$'}((tracked_ins + untracked_lines))
+                        local total_del=${'$'}tracked_del
+                        diff_stats="+${'$'}total_ins -${'$'}total_del"
 
                         # Commits ahead of base
                         commits_ahead=${'$'}(git -C . rev-list --count ${'$'}base_branch..HEAD 2>/dev/null || echo "0")
@@ -341,10 +348,10 @@ class ZonedPlugin : Plugin<Project> {
                         fi
 
                         local compile_start=${'$'}(date +%s%3N 2>/dev/null || date +%s)
-                        # Skip JS tasks - only compile JVM code for fast reload, include build-style for CSS
+                        # Compile both JVM and JS (skip slow webpack bundling), include build-style for CSS
                         local build_output
-                        build_output=${'$'}(./gradlew --parallel --build-cache ${'$'}refresh_flag compileKotlinJvm build-style \
-                            -x compileKotlinJs -x jsBrowserProductionWebpack -x jsProductionExecutableCompileSync \
+                        build_output=${'$'}(./gradlew --parallel --build-cache ${'$'}refresh_flag compileKotlinJvm compileKotlinJs build-style \
+                            -x jsBrowserProductionWebpack -x jsProductionExecutableCompileSync \
                             -x compileProductionExecutableKotlinJs -x jsBrowserDistribution 2>&1)
                         local build_status=${'$'}?
 
