@@ -6,13 +6,24 @@ import kotlinx.serialization.Serializable
  * Enhancement for WYSIWYG rich text editing.
  * Uses contenteditable with a basic formatting toolbar on the client-side.
  *
+ * The enhancement wraps the initial content to be edited.
+ *
  * Usage:
  * ```kotlin
- * div {
- *     wysiwyg {
- *         inputName = "content"
- *         toolbar = "standard"
- *     }
+ * // Empty editor for new content
+ * wysiwyg({
+ *     inputName = "content"
+ *     placeholder = "Add a note..."
+ *     toolbar = "standard"
+ * }) {
+ *     // Empty - new content
+ * }
+ *
+ * // Editor with existing content
+ * wysiwyg({
+ *     inputName = "content"
+ * }) {
+ *     unsafe { +existingHtmlContent }
  * }
  * ```
  */
@@ -23,34 +34,15 @@ object WysiwygEnhancement : Enhancement<WysiwygConfig> {
 }
 
 /**
- * Configuration for the WYSIWYG enhancement
+ * Configuration for the WYSIWYG enhancement.
+ * Note: inputName and placeholder come from the wrapped textarea element.
  */
 @Serializable
 data class WysiwygConfig(
     /**
-     * Name attribute for the hidden input that stores the HTML content
-     */
-    var inputName: String = "content",
-
-    /**
-     * Initial HTML content
-     */
-    var initialContent: String = "",
-
-    /**
-     * Placeholder text when editor is empty
-     */
-    var placeholder: String = "",
-
-    /**
      * Minimum height of the editor in pixels
      */
     var minHeight: Int = 120,
-
-    /**
-     * Theme: "snow" (toolbar) or "bubble" (tooltip)
-     */
-    var theme: String = "snow",
 
     /**
      * Toolbar options: "minimal", "standard", or "full"

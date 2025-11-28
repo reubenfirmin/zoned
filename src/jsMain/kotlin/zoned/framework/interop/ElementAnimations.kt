@@ -5,15 +5,18 @@ import web.timers.setTimeout
 
 enum class Direction { UP, DOWN, LEFT, RIGHT }
 
+private fun transition(property: String, durationMs: Int, timing: String = "ease-in-out") =
+    "$property ${durationMs}ms $timing"
+
 /**
  * Fade element in from opacity 0 to 1.
  */
 fun HTMLElement.fadeIn(durationMs: Int, onComplete: (() -> Unit)? = null) {
-    asDynamic().style.opacity = 0
-    asDynamic().style.transition = "opacity ${durationMs}ms ease-in-out"
+    style.opacity = "0"
+    style.transition = transition("opacity", durationMs)
     // Force reflow to ensure transition triggers
     offsetHeight
-    asDynamic().style.opacity = 1
+    style.opacity = "1"
     onComplete?.let { cb -> setTimeout({ cb() }, durationMs) }
 }
 
@@ -21,8 +24,8 @@ fun HTMLElement.fadeIn(durationMs: Int, onComplete: (() -> Unit)? = null) {
  * Fade element out from current opacity to 0.
  */
 fun HTMLElement.fadeOut(durationMs: Int, onComplete: (() -> Unit)? = null) {
-    asDynamic().style.transition = "opacity ${durationMs}ms ease-in-out"
-    asDynamic().style.opacity = 0
+    style.transition = transition("opacity", durationMs)
+    style.opacity = "0"
     onComplete?.let { cb -> setTimeout({ cb() }, durationMs) }
 }
 
@@ -43,8 +46,8 @@ fun HTMLElement.slideOut(direction: Direction, durationMs: Int, onComplete: (() 
         Direction.LEFT -> "translateX(-100%)"
         Direction.RIGHT -> "translateX(100%)"
     }
-    asDynamic().style.transition = "transform ${durationMs}ms ease-in-out"
-    asDynamic().style.transform = transform
+    style.transition = transition("transform", durationMs)
+    style.transform = transform
     onComplete?.let { cb -> setTimeout({ cb() }, durationMs) }
 }
 
@@ -58,10 +61,10 @@ fun HTMLElement.slideIn(direction: Direction, durationMs: Int, onComplete: (() -
         Direction.LEFT -> "translateX(-100%)"
         Direction.RIGHT -> "translateX(100%)"
     }
-    asDynamic().style.transform = startTransform
-    asDynamic().style.transition = "transform ${durationMs}ms ease-in-out"
+    style.transform = startTransform
+    style.transition = transition("transform", durationMs)
     offsetHeight  // Force reflow
-    asDynamic().style.transform = "translate(0, 0)"
+    style.transform = "translate(0, 0)"
     onComplete?.let { cb -> setTimeout({ cb() }, durationMs) }
 }
 
@@ -69,11 +72,11 @@ fun HTMLElement.slideIn(direction: Direction, durationMs: Int, onComplete: (() -
  * Collapse element height to 0 (accordion-style).
  */
 fun HTMLElement.collapse(durationMs: Int, onComplete: (() -> Unit)? = null) {
-    asDynamic().style.overflow = "hidden"
-    asDynamic().style.height = "${scrollHeight}px"
-    asDynamic().style.transition = "height ${durationMs}ms ease-in-out"
+    style.overflow = "hidden"
+    style.height = "${scrollHeight}px"
+    style.transition = transition("height", durationMs)
     offsetHeight  // Force reflow
-    asDynamic().style.height = "0px"
+    style.height = "0px"
     onComplete?.let { cb -> setTimeout({ cb() }, durationMs) }
 }
 
@@ -81,15 +84,15 @@ fun HTMLElement.collapse(durationMs: Int, onComplete: (() -> Unit)? = null) {
  * Expand element from height 0 to its natural height (accordion-style).
  */
 fun HTMLElement.expand(durationMs: Int, onComplete: (() -> Unit)? = null) {
-    asDynamic().style.overflow = "hidden"
+    style.overflow = "hidden"
     val targetHeight = scrollHeight
-    asDynamic().style.height = "0px"
-    asDynamic().style.transition = "height ${durationMs}ms ease-in-out"
+    style.height = "0px"
+    style.transition = transition("height", durationMs)
     offsetHeight  // Force reflow
-    asDynamic().style.height = "${targetHeight}px"
+    style.height = "${targetHeight}px"
     setTimeout({
-        asDynamic().style.height = "auto"
-        asDynamic().style.overflow = ""
+        style.height = "auto"
+        style.overflow = ""
         onComplete?.invoke()
     }, durationMs)
 }

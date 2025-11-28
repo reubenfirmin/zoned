@@ -80,6 +80,11 @@ object HTMX {
     enum class Swap {
         INNER, OUTER, BEFOREEND, AFTEREND
     }
+
+    enum class Encoding(val value: String) {
+        MULTIPART("multipart/form-data"),
+        URL_ENCODED("application/x-www-form-urlencoded")
+    }
 }
 
 // TODO move these to ConextExtensions

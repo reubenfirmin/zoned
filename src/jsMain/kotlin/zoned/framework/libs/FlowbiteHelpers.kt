@@ -10,7 +10,7 @@ object FlowbiteHelpers {
         val elements = document.querySelectorAll("[data-popper-placement]")
         for (i in 0 until elements.length) {
             val el = elements.item(i)!!
-            (el as HTMLElement).style.display = "none"
+            (el as HTMLElement).classList.add("hidden")
         }
     }
 }

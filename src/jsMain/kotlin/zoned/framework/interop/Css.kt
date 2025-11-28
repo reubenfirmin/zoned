@@ -53,3 +53,48 @@ fun CommonAttributeGroupFacade.cssClass(className: String = "clzz${counter++}", 
     this.classes = setOf(className) + this.classes
 }
 
+/**
+ * Creates a class with hover state support.
+ * Attaches both base styles and hover styles to the head.
+ *
+ * Usage:
+ * ```kotlin
+ * button {
+ *     cssClassWithHover(
+ *         base = { backgroundColor = Color("#374151") },
+ *         hover = { backgroundColor = Color("#4b5563") }
+ *     )
+ * }
+ * ```
+ */
+fun CommonAttributeGroupFacade.cssClassWithHover(
+    className: String = "clzz${counter++}",
+    base: CssBuilder.() -> Unit,
+    hover: CssBuilder.() -> Unit
+) {
+    val baseCss = CssBuilder().apply(base).toString()
+    val hoverCss = CssBuilder().apply(hover).toString()
+
+    fun formatCss(raw: String) = raw.split(";")
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .joinToString(";\n        ")
+
+    val style = """
+    .$className {
+        ${formatCss(baseCss)};
+    }
+    .$className:hover {
+        ${formatCss(hoverCss)};
+    }
+    """.trimIndent()
+
+    val head = document.head
+    val styleTag = head.getElementsByTagName("style").firstOrNull() as? HTMLStyleElement
+        ?: document.createElement("style").also { head.appendChild(it) } as HTMLStyleElement
+
+    styleTag.innerHTML += "\n$style"
+
+    this.classes = setOf(className) + this.classes
+}
+

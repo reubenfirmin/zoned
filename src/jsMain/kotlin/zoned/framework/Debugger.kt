@@ -29,12 +29,14 @@ object Debugger {
 
     fun profileMarkerStart(s: String) {
         if (profile) {
+            // asDynamic: console.time() is non-standard and not in kotlin-wrappers Console interface
             console.asDynamic().time(s)
         }
     }
 
     fun profileMarkerEnd(s: String) {
         if (profile) {
+            // asDynamic: console.timeEnd() is non-standard and not in kotlin-wrappers Console interface
             console.asDynamic().timeEnd(s)
         }
     }

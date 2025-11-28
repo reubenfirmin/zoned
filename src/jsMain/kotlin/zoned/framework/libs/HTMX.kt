@@ -4,9 +4,9 @@ import js.objects.Record
 import js.objects.jso
 import kotlinx.browser.document
 import kotlinx.browser.window
-import org.w3c.dom.Element
-import org.w3c.dom.events.Event
 import org.w3c.dom.parsing.DOMParser
+import org.w3c.xhr.XMLHttpRequest
+import web.dom.Element
 
 // this is here for the initial import - see https://htmx.org/docs/#webpack
 @JsModule("htmx.org/dist/htmx.esm.js")
@@ -17,7 +17,7 @@ external object HTMXModule {
 
 external interface HTMX {
     fun onLoad(handler: (Element) -> Unit)
-    fun on(eventName: String, handler: (Event) -> Unit)
+    fun on(eventName: String, handler: (HTMXEvent) -> Unit)
 
     /**
      * Trigger an HTMX ajax request programmatically.
@@ -26,6 +26,12 @@ external interface HTMX {
      * @param options Object with target, swap, values, etc.
      */
     fun ajax(method: String, url: String, options: dynamic)
+
+    /**
+     * Process an element and its children for HTMX attributes.
+     * Call this after dynamically adding elements that have hx-* attributes.
+     */
+    fun process(element: Element)
 }
 
 /**
@@ -35,6 +41,31 @@ external interface HTMXAjaxOptions {
     var target: String?
     var swap: String?
     var values: Record<String, String>?
+}
+
+/**
+ * HTMX custom event with typed detail
+ */
+external interface HTMXEvent {
+    val detail: HTMXEventDetail
+}
+
+external interface HTMXEventDetail {
+    val elt: Element?        // htmx:load
+    val target: Element?     // htmx:afterSwap
+    val xhr: XMLHttpRequest? // htmx:afterSwap
+}
+
+/**
+ * Extension to attach htmx to window (required per https://htmx.org/docs/#webpack)
+ */
+external interface WindowWithHTMX {
+    var htmx: HTMX?
+}
+
+@Suppress("UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
+fun attachHTMXToWindow(htmx: HTMX) {
+    (window as WindowWithHTMX).htmx = htmx
 }
 
 /**
@@ -52,11 +83,11 @@ object HTMXHelper {
     fun setupHTMX(callback: () -> Unit = {}) {
         htmx = HTMXModule.default
         // we also need to attach it to the window per https://htmx.org/docs/#webpack
-        window.asDynamic().htmx = htmx
+        attachHTMXToWindow(htmx)
 
         // and then we can wire up our onLoad per https://htmx.org/docs/#init_3rd_party_with_events
         htmx.on("htmx:load") { event ->
-            val content = event.asDynamic().detail.elt as Element
+            val content = event.detail.elt ?: return@on
             // Use selective Flowbite initialization to avoid initCollapses() which adds resize listeners
             // that interfere with Tailwind CSS responsive utilities
             initDropdowns()
@@ -79,12 +110,14 @@ object HTMXHelper {
         // https://github.com/bigskysoftware/htmx/issues/1384
         htmx.on("htmx:afterSwap") { event ->
             val parser = DOMParser()
-            val evt = event.asDynamic()
+            val detail = event.detail
+            val targetEl = detail.target ?: return@on
+            val xhr = detail.xhr ?: return@on
 
-            if (evt.detail.target.tagName == "BODY") {
-                val parsedResponse = parser.parseFromString(evt.detail.xhr.response as String, "text/html");
+            if (targetEl.tagName == "BODY") {
+                val response = xhr.responseText
+                val parsedResponse = parser.parseFromString(response, "text/html")
                 val bodyAttributes = parsedResponse.getElementsByTagName("body").item(0)!!.attributes
-                val targetEl = evt.detail.target as Element
 
                 // remove old
                 for (i in (0 until targetEl.attributes.length).reversed()) {
@@ -95,7 +128,7 @@ object HTMXHelper {
                 // set new
                 for (i in 0 until bodyAttributes.length) {
                     val attr = bodyAttributes.item(i)!!
-                    evt.detail.target.setAttribute(attr.name, attr.value)
+                    targetEl.setAttribute(attr.name, attr.value)
                 }
             }
         }
@@ -107,12 +140,12 @@ object HTMXHelper {
         val originalOnError = window.onerror
 
         window.onerror = { message, source, lineNo, colNo, error ->
-            if (error is Error) {
+            if (error is Throwable) {
                 val errorString = error.toString()
-                val stackTrace = error.asDynamic().stack as? String
+                val stackTrace = error.stackTraceToString()
 
                 if (errorString.contains("TypeError: Cannot read properties of null (reading 'classList')") &&
-                    stackTrace?.contains("htmx.org") == true) {
+                    stackTrace.contains("htmx.org")) {
 
                     console.warn("Suppressed HTMX classList error:", errorString)
                     console.warn("Error occurred at:", source, lineNo, colNo)

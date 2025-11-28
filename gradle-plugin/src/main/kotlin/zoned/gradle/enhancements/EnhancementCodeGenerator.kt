@@ -30,22 +30,26 @@ open class EnhancementCodeGenerator : DefaultTask() {
             return
         }
 
-        // Scan for implementations in jsMain
+        // Scan for TagConsumer-based implementations in jsMain (only pattern supported)
         val jsMainDir = project.file("src/jsMain/kotlin")
-        val implementations = implScanner.scanForImplementations(jsMainDir)
+        implScanner.scanForImplementations(jsMainDir)
 
-        // Validate that all enhancements have implementations
+        // Validate that all enhancements have TagConsumer implementations
         val missingImpls = enhancements.filter { enh ->
-            !implScanner.hasImplementation(implementations, enh.objectName)
+            !implScanner.hasImplementation(enh.objectName)
         }
         if (missingImpls.isNotEmpty()) {
             val message = buildString {
                 appendLine("Missing enhancement implementations in jsMain:")
+                appendLine()
                 missingImpls.forEach { enh ->
-                    appendLine("  - ${enh.objectName} requires one of:")
-                    appendLine("      fun ${enh.expectActualImplName}(element: EnhancementElement, config: ${enh.configClass}) - recommended")
-                    appendLine("      fun ${enh.legacyImplName}(element: Element, config: ${enh.configClass}) - legacy")
+                    appendLine("  - ${enh.objectName} requires TagConsumer implementation:")
+                    appendLine("      @EnhancementImpl(${enh.objectName}::class)")
+                    appendLine("      fun TagConsumer<HTMLElement>.init${enh.objectName}(config: ${enh.configClass}, children: List<Node>)")
+                    appendLine()
                 }
+                appendLine("Note: Legacy patterns (EnhancementElement, raw Element) are no longer supported.")
+                appendLine("All implementations must use the TagConsumer extension function pattern.")
             }
             throw org.gradle.api.GradleException(message)
         }
@@ -53,14 +57,28 @@ open class EnhancementCodeGenerator : DefaultTask() {
         // Generate JVM DSL
         generateJvmDSL(enhancements)
 
-        // Generate JS Registry
-        generateJsRegistry(enhancements, implementations, implScanner)
+        // Generate JS Registry (TagConsumer only)
+        generateJsRegistry(enhancements, implScanner)
 
         project.logger.lifecycle("Enhancement code generation complete")
     }
 
     /**
-     * Generate JVM-side DSL extension functions
+     * Generate JVM-side DSL extension functions.
+     *
+     * Generates wrapper-style DSL functions that create a container div with
+     * enhancement data attributes, and render child content inside.
+     *
+     * Example output:
+     * ```
+     * fun FlowContent.wysiwyg(configure: WysiwygConfig.() -> Unit = {}, content: FlowContent.() -> Unit = {}) {
+     *     div {
+     *         val config = WysiwygConfig().apply(configure)
+     *         enhance(WysiwygEnhancement, config)
+     *         content()
+     *     }
+     * }
+     * ```
      */
     private fun generateJvmDSL(enhancements: List<DiscoveredEnhancement>) {
         // Use project-specific package to avoid conflicts
@@ -83,32 +101,68 @@ open class EnhancementCodeGenerator : DefaultTask() {
         val extensionFunctions = enhancements.joinToString("\n\n") { enh ->
             // Convert hyphenated name to camelCase for valid Kotlin identifier
             val functionName = enh.name.toCamelCase()
-            """
-            |/**
-            | * Type-safe DSL for ${enh.name} enhancement.
-            | * Adds data-enhancement attributes for client-side initialization.
-            | *
-            | * Example:
-            | * ```
-            | * ul {
-            | *     $functionName {
-            | *         // Configure here
-            | *     }
-            | *     li { +"Item" }
-            | * }
-            | * ```
-            | */
-            |fun CommonAttributeGroupFacade.$functionName(configure: ${enh.configClass}.() -> Unit = {}) {
-            |    val config = ${enh.configClass}().apply(configure)
-            |    enhance(${enh.objectName}, config)
-            |}
-            """.trimMargin()
+
+            if (enh.clientBuildsContent) {
+                // Config-only DSL: client builds all UI, no server content needed
+                // configure must be LAST for trailing lambda syntax to work
+                """
+                |/**
+                | * Type-safe DSL for ${enh.name} enhancement.
+                | * Creates a wrapper div with enhancement data attributes.
+                | * The client builds all UI from config - no server content is passed.
+                | *
+                | * Example:
+                | * ```
+                | * $functionName { /* config */ }
+                | * $functionName("w-full h-full") { /* config */ }
+                | * ```
+                | */
+                |fun FlowContent.$functionName(
+                |    classes: String = "",
+                |    configure: ${enh.configClass}.() -> Unit = {}
+                |) {
+                |    div(classes) {
+                |        val config = ${enh.configClass}().apply(configure)
+                |        enhance(${enh.objectName}, config)
+                |    }
+                |}
+                """.trimMargin()
+            } else {
+                // Wrapper DSL: server provides content that client wraps
+                // content must be LAST for trailing lambda syntax to work
+                """
+                |/**
+                | * Type-safe DSL for ${enh.name} enhancement.
+                | * Creates a wrapper div with enhancement data attributes.
+                | * Child content is rendered inside and will be available to the client-side implementation.
+                | *
+                | * Example:
+                | * ```
+                | * $functionName({ /* config */ }) { /* content */ }
+                | * $functionName("my-class", { /* config */ }) { /* content */ }
+                | * ```
+                | */
+                |fun FlowContent.$functionName(
+                |    classes: String = "",
+                |    configure: ${enh.configClass}.() -> Unit = {},
+                |    content: FlowContent.() -> Unit = {}
+                |) {
+                |    div(classes) {
+                |        val config = ${enh.configClass}().apply(configure)
+                |        enhance(${enh.objectName}, config)
+                |        content()
+                |    }
+                |}
+                """.trimMargin()
+            }
         }
 
         val code = """
             |package $projectPackage
             |
             |import kotlinx.html.CommonAttributeGroupFacade
+            |import kotlinx.html.FlowContent
+            |import kotlinx.html.div
             |import kotlinx.serialization.json.Json
             |import zoned.framework.ui.enhancements.Enhancement
             |import zoned.framework.ui.enhancements.EnhancementConfig
@@ -142,11 +196,16 @@ open class EnhancementCodeGenerator : DefaultTask() {
     }
 
     /**
-     * Generate JS-side auto-discovery registry
+     * Generate JS-side auto-discovery registry.
+     *
+     * All implementations use the TagConsumer pattern:
+     * - Captures server-rendered children before clearing
+     * - Clears the element
+     * - Uses appendTo(element) to get TagConsumer
+     * - Calls the extension function with config and children
      */
     private fun generateJsRegistry(
         enhancements: List<DiscoveredEnhancement>,
-        implementations: Set<String>,
         implScanner: ImplScanner
     ) {
         // Use project-specific package to avoid conflicts
@@ -157,9 +216,10 @@ open class EnhancementCodeGenerator : DefaultTask() {
         // Project-specific registry name
         val registryName = "${project.name.replaceFirstChar { it.uppercase() }.replace("-", "")}EnhancementRegistry"
 
-        // Collect imports - include impl function imports based on pattern
+        // Collect imports for enhancement objects, configs, and impl functions
         val imports = enhancements.flatMap { enh ->
-            val implName = implScanner.getImplementationName(implementations, enh.objectName) ?: enh.legacyImplName
+            val implName = implScanner.getImplementationName(enh.objectName)
+                ?: throw IllegalStateException("No implementation found for ${enh.objectName}")
             listOf(
                 "import ${enh.packageName}.${enh.objectName}",
                 "import ${enh.packageName}.${enh.configClass}",
@@ -172,53 +232,47 @@ open class EnhancementCodeGenerator : DefaultTask() {
             """register("${enh.name}", ::_init${enh.objectName})"""
         }
 
-        // Generate handler functions - determine wrapping based on implementation function name
+        // Generate handler functions - all use TagConsumer pattern
         val handlers = enhancements.joinToString("\n\n    ") { enh ->
-            val implName = implScanner.getImplementationName(implementations, enh.objectName) ?: enh.legacyImplName
-            val usesEnhancementElement = implName.startsWith("init")
-
-            if (usesEnhancementElement) {
-                // New pattern (initFoo): wrap Element in EnhancementElement
-                """
-                |private fun _init${enh.objectName}(element: Element, configJson: String) {
-                |    val config = Json.decodeFromString(${enh.objectName}.configSerializer, configJson)
-                |    val wrapped = EnhancementElement.wrapOrThrow(element)
-                |    $implName(wrapped, config)
-                |}
-                """.trimMargin()
-            } else {
-                // Legacy pattern (makeFoo): pass raw Element
-                """
-                |private fun _init${enh.objectName}(element: Element, configJson: String) {
-                |    val config = Json.decodeFromString(${enh.objectName}.configSerializer, configJson)
-                |    $implName(element, config)
-                |}
-                """.trimMargin()
-            }
+            val implName = implScanner.getImplementationName(enh.objectName)!!
+            """
+            |private fun _init${enh.objectName}(element: Element, configJson: String) {
+            |    val config = Json.decodeFromString(${enh.objectName}.configSerializer, configJson)
+            |    val htmlElement = element as HTMLElement
+            |
+            |    // Capture server-rendered children before clearing
+            |    val children = mutableListOf<Node>()
+            |    while (htmlElement.firstChild != null) {
+            |        children.add(htmlElement.removeChild(htmlElement.firstChild!!))
+            |    }
+            |
+            |    // Rebuild element using TagConsumer DSL
+            |    htmlElement.appendTo().apply {
+            |        $implName(config, children)
+            |    }
+            |}
+            """.trimMargin()
         }
-
-        // Check if any enhancement uses new pattern (needs EnhancementElement import)
-        val needsEnhancementElement = enhancements.any { enh ->
-            val implName = implScanner.getImplementationName(implementations, enh.objectName) ?: enh.legacyImplName
-            implName.startsWith("init")
-        }
-
-        val enhancementElementImport = if (needsEnhancementElement) {
-            "import zoned.framework.ui.enhancements.EnhancementElement"
-        } else ""
 
         val code = """
             |package $projectPackage
             |
             |import kotlinx.serialization.json.Json
             |import web.dom.Element
+            |import web.dom.Node
             |import web.dom.document
-            |import kotlinx.browser.window
-            |${if (enhancementElementImport.isNotEmpty()) enhancementElementImport + "\n" else ""}${imports.joinToString("\n")}
+            |import web.html.HTMLElement
+            |import zoned.framework.interop.appendTo
+            |${imports.joinToString("\n")}
             |
             |/**
             | * Auto-generated enhancement registry for ${project.name}
             | * Generated by Zoned Gradle Plugin
+            | *
+            | * All handlers use the TagConsumer pattern:
+            | * 1. Capture server-rendered children
+            | * 2. Clear element
+            | * 3. Rebuild using TagConsumer DSL with captured children
             | *
             | * DO NOT EDIT THIS FILE MANUALLY
             | */
@@ -238,8 +292,9 @@ open class EnhancementCodeGenerator : DefaultTask() {
             |     * Initialize all enhancements found in the DOM.
             |     * Call this after page load or after HTMX content swaps.
             |     */
-            |    fun initialize(root: Element = document.body as Element) {
-            |        val elements = root.querySelectorAll("[data-enhancement]")
+            |    fun initialize(root: Element? = document.body) {
+            |        val actualRoot = root ?: return // Skip if no root element (e.g., during early script execution)
+            |        val elements = actualRoot.querySelectorAll("[data-enhancement]")
             |        for (i in 0 until elements.length) {
             |            val element = elements.item(i) ?: continue
             |
@@ -249,16 +304,13 @@ open class EnhancementCodeGenerator : DefaultTask() {
             |            val enhancementName = element.getAttribute("data-enhancement") ?: continue
             |            val configJson = element.getAttribute("data-enhancement-config") ?: "{}"
             |
-            |            val handler = handlers[enhancementName]
-            |            if (handler != null) {
-            |                try {
-            |                    handler(element, configJson)
-            |                    element.setAttribute("data-enhanced", "true")
-            |                } catch (e: Exception) {
-            |                    console.error("Failed to initialize enhancement '${'$'}enhancementName':", e)
-            |                }
-            |            } else {
-            |                console.warn("No handler registered for enhancement: ${'$'}enhancementName")
+            |            // Skip if not handled by this registry (another registry may handle it)
+            |            val handler = handlers[enhancementName] ?: continue
+            |            try {
+            |                handler(element, configJson)
+            |                element.setAttribute("data-enhanced", "true")
+            |            } catch (e: Exception) {
+            |                console.error("Failed to initialize enhancement '${'$'}enhancementName':", e)
             |            }
             |        }
             |    }

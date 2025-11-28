@@ -5,18 +5,22 @@ import java.io.File
 
 /**
  * Scans jsMain source for enhancement implementation functions.
- * Looks for both patterns:
- * - Legacy: fun makeFooEnhancement(...)
- * - New: actual fun initFooEnhancement(...)
+ *
+ * ONLY accepts the TagConsumer pattern:
+ *   @EnhancementImpl(FooEnhancement::class)
+ *   fun TagConsumer<HTMLElement>.initFooEnhancement(config: FooConfig, children: List<Node>)
  */
 class ImplScanner(private val logger: Logger) {
 
-    // Matches: fun makeFooEnhancement( or actual fun initFooEnhancement(
-    private val functionRegex = """(?:actual\s+)?fun\s+((?:make|init)\w+Enhancement)\s*\(""".toRegex()
+    // Matches @EnhancementImpl(FooEnhancement::class) followed by TagConsumer extension function
+    private val tagConsumerImplRegex = """@EnhancementImpl\s*\(\s*(\w+)\s*::\s*class\s*\)\s*(?:\n\s*)?fun\s+TagConsumer\s*<[^>]+>\s*\.(init\w+)\s*\(""".toRegex()
+
+    // Maps enhancement object name -> implementation function name
+    private val implementations = mutableMapOf<String, String>()
 
     /**
-     * Scan jsMain directory for enhancement implementation functions.
-     * @return Set of function names found (e.g., "makeTooltipEnhancement", "initTooltipEnhancement")
+     * Scan jsMain directory for TagConsumer-based enhancement implementations.
+     * @return Set of enhancement object names that have valid implementations
      */
     fun scanForImplementations(jsMainDir: File): Set<String> {
         if (!jsMainDir.exists()) {
@@ -24,43 +28,35 @@ class ImplScanner(private val logger: Logger) {
             return emptySet()
         }
 
-        val implementations = mutableSetOf<String>()
+        implementations.clear()
 
         jsMainDir.walkTopDown()
             .filter { it.isFile && it.extension == "kt" }
             .forEach { file ->
                 val content = file.readText()
-                functionRegex.findAll(content).forEach { match ->
-                    val funcName = match.groupValues[1]
-                    implementations.add(funcName)
-                    logger.info("ImplScanner: Found implementation '$funcName' in ${file.name}")
+
+                tagConsumerImplRegex.findAll(content).forEach { match ->
+                    val enhancementName = match.groupValues[1]
+                    val funcName = match.groupValues[2]
+                    implementations[enhancementName] = funcName
+                    logger.info("ImplScanner: Found TagConsumer impl '$funcName' for $enhancementName in ${file.name}")
                 }
             }
 
-        return implementations
+        return implementations.keys
     }
 
     /**
-     * Check if an implementation exists for a given enhancement.
-     * Checks both legacy (makeFoo) and new (initFoo) patterns.
+     * Check if a valid TagConsumer implementation exists for the enhancement.
      */
-    fun hasImplementation(implementations: Set<String>, objectName: String): Boolean {
-        val legacyName = "make$objectName"
-        val newName = "init$objectName"
-        return legacyName in implementations || newName in implementations
+    fun hasImplementation(objectName: String): Boolean {
+        return objectName in implementations
     }
 
     /**
      * Get the implementation function name for an enhancement.
-     * Prefers new pattern (initFoo) over legacy (makeFoo).
      */
-    fun getImplementationName(implementations: Set<String>, objectName: String): String? {
-        val newName = "init$objectName"
-        val legacyName = "make$objectName"
-        return when {
-            newName in implementations -> newName
-            legacyName in implementations -> legacyName
-            else -> null
-        }
+    fun getImplementationName(objectName: String): String? {
+        return implementations[objectName]
     }
 }

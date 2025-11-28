@@ -1,9 +1,23 @@
 package zoned.framework.ui.enhancements
 
-import kotlinx.browser.document
 import kotlinx.css.*
-import web.html.HTMLFormElement
+import kotlinx.css.properties.TextDecoration
+import kotlinx.css.properties.TextDecorationLine
+import kotlinx.html.*
+import web.dom.Node
+import web.dom.document
+import web.html.HTMLElement
 import web.html.HTMLInputElement
+import web.html.HTMLTextAreaElement
+import zoned.framework.dom.*
+import zoned.framework.dom.setInnerHtml
+import web.uievents.MouseEvent
+import web.uievents.InputEvent
+import web.uievents.KeyboardEvent
+import zoned.framework.interop.closestForm
+import zoned.framework.interop.css
+import zoned.framework.interop.cssClassWithHover
+import zoned.framework.interop.execCommand
 
 /**
  * Sanitize HTML to be valid XHTML (self-closing tags)
@@ -18,19 +32,80 @@ private fun sanitizeHtml(html: String): String {
 /**
  * Client-side implementation of the WYSIWYG enhancement.
  * Uses contenteditable with basic formatting toolbar.
+ *
+ * Wraps a textarea element and enhances it to a rich text editor.
+ * If JS doesn't run, the textarea still works as a fallback.
+ *
+ * Usage (server-side):
+ * ```kotlin
+ * wysiwyg({ toolbar = "standard" }) {
+ *     textArea {
+ *         name = "content"
+ *         placeholder = "Add a note..."
+ *         +existingContent
+ *     }
+ * }
+ * ```
  */
-fun initWysiwygEnhancement(element: EnhancementElement, config: WysiwygConfig) {
-    try {
-        // Clear and setup container
-        element.clear()
-        element.css {
+@EnhancementImpl(WysiwygEnhancement::class)
+fun TagConsumer<HTMLElement>.initWysiwygEnhancement(config: WysiwygConfig, children: List<Node>) {
+    // Find the textarea from server-rendered content
+    val textarea = children.asSequence()
+        .filterIsInstance<HTMLElement>()
+        .mapNotNull { el ->
+            if (el.tagName.equals("TEXTAREA", ignoreCase = true)) el as? HTMLTextAreaElement
+            else el.querySelector("textarea") as? HTMLTextAreaElement
+        }
+        .firstOrNull()
+
+    // Extract textarea properties for the editor
+    val inputName = textarea?.name ?: "content"
+    val initialContent = textarea?.value ?: ""
+    val placeholder = textarea?.placeholder ?: ""
+
+    // Element references
+    val editorRef = Ref<HTMLElement>()
+    val hiddenInputRef = Ref<HTMLInputElement>()
+    val toolbarRef = Ref<HTMLElement>()
+
+    // Toolbar button definitions
+    val buttons = when (config.toolbar) {
+        "full" -> listOf(
+            ToolbarButton("bold", "B", "Bold", fontWeight = FontWeight.bold),
+            ToolbarButton("italic", "I", "Italic", fontStyle = FontStyle.italic),
+            ToolbarButton("underline", "U", "Underline", textDecoration = TextDecoration(setOf(TextDecorationLine.underline))),
+            ToolbarButton("strikeThrough", "S", "Strikethrough", textDecoration = TextDecoration(setOf(TextDecorationLine.lineThrough))),
+            ToolbarButton.separator(),
+            ToolbarButton("insertUnorderedList", "•", "Bullet List"),
+            ToolbarButton("insertOrderedList", "1.", "Numbered List"),
+            ToolbarButton.separator(),
+            ToolbarButton("removeFormat", "✕", "Clear Formatting")
+        )
+        "standard" -> listOf(
+            ToolbarButton("bold", "B", "Bold", fontWeight = FontWeight.bold),
+            ToolbarButton("italic", "I", "Italic", fontStyle = FontStyle.italic),
+            ToolbarButton("underline", "U", "Underline", textDecoration = TextDecoration(setOf(TextDecorationLine.underline))),
+            ToolbarButton.separator(),
+            ToolbarButton("insertUnorderedList", "•", "Bullet List"),
+            ToolbarButton("insertOrderedList", "1.", "Numbered List")
+        )
+        else -> listOf(
+            ToolbarButton("bold", "B", "Bold", fontWeight = FontWeight.bold),
+            ToolbarButton("italic", "I", "Italic", fontStyle = FontStyle.italic),
+            ToolbarButton("insertUnorderedList", "•", "Bullet List")
+        )
+    }
+
+    // Build DOM structure
+    div {
+        css {
             display = Display.flex
             flexDirection = FlexDirection.column
         }
 
-        // Create toolbar
-        val toolbar = element.create.div {
-            className = "wysiwyg-toolbar"
+        // Toolbar
+        div("wysiwyg-toolbar") {
+            ref(toolbarRef)
             css {
                 display = Display.flex
                 gap = 4.px
@@ -43,93 +118,65 @@ fun initWysiwygEnhancement(element: EnhancementElement, config: WysiwygConfig) {
                 borderBottomRightRadius = 0.px
                 flexWrap = FlexWrap.wrap
             }
-        }
 
-        // Add toolbar buttons based on config
-        val buttons = when (config.toolbar) {
-            "full" -> arrayOf(
-                arrayOf("bold", "B", "Bold", "font-weight: bold;"),
-                arrayOf("italic", "I", "Italic", "font-style: italic;"),
-                arrayOf("underline", "U", "Underline", "text-decoration: underline;"),
-                arrayOf("strikeThrough", "S", "Strikethrough", "text-decoration: line-through;"),
-                arrayOf("separator", "", "", ""),
-                arrayOf("insertUnorderedList", "•", "Bullet List", ""),
-                arrayOf("insertOrderedList", "1.", "Numbered List", ""),
-                arrayOf("separator", "", "", ""),
-                arrayOf("removeFormat", "✕", "Clear Formatting", "")
-            )
-            "standard" -> arrayOf(
-                arrayOf("bold", "B", "Bold", "font-weight: bold;"),
-                arrayOf("italic", "I", "Italic", "font-style: italic;"),
-                arrayOf("underline", "U", "Underline", "text-decoration: underline;"),
-                arrayOf("separator", "", "", ""),
-                arrayOf("insertUnorderedList", "•", "Bullet List", ""),
-                arrayOf("insertOrderedList", "1.", "Numbered List", "")
-            )
-            else -> arrayOf( // minimal
-                arrayOf("bold", "B", "Bold", "font-weight: bold;"),
-                arrayOf("italic", "I", "Italic", "font-style: italic;"),
-                arrayOf("insertUnorderedList", "•", "Bullet List", "")
-            )
-        }
+            buttons.forEach { btn ->
+                if (btn.isSeparator) {
+                    div {
+                        css {
+                            width = 1.px
+                            height = 24.px
+                            backgroundColor = Color("#4b5563")
+                            margin = Margin(0.px, 4.px)
+                        }
+                    }
+                } else {
+                    button(type = ButtonType.button) {
+                        attributes["data-command"] = btn.command
+                        +btn.label
+                        title = btn.title
 
-        buttons.forEach { btn ->
-            val command = btn[0]
-            val label = btn[1]
-            val title = btn[2]
-            val extraStyle = btn[3]
+                        // Base + hover styles via CSS class
+                        cssClassWithHover(
+                            base = {
+                                padding = Padding(4.px, 8.px)
+                                minWidth = 28.px
+                                backgroundColor = Color("#374151")
+                                border = Border(1.px, BorderStyle.solid, Color("#4b5563"))
+                                borderRadius = 4.px
+                                color = Color("#e5e7eb")
+                                cursor = Cursor.pointer
+                                fontSize = 14.px
+                                // Apply formatting style to button label
+                                btn.fontWeight?.let { fontWeight = it }
+                                btn.fontStyle?.let { fontStyle = it }
+                                btn.textDecoration?.let { textDecoration = it }
+                            },
+                            hover = {
+                                backgroundColor = Color("#4b5563")
+                            }
+                        )
 
-            if (command == "separator") {
-                val sep = element.create.div {
-                    css {
-                        width = 1.px
-                        height = 24.px
-                        backgroundColor = Color("#4b5563")
-                        margin = Margin(0.px, 4.px)
+                        onClick { e: MouseEvent ->
+                            e.preventDefault()
+                            editorRef.element.focus()
+                            val command = (e.currentTarget as? HTMLElement)?.getAttribute("data-command") ?: return@onClick
+                            document.execCommand(command)
+                        }
                     }
                 }
-                toolbar.appendChild(sep)
-            } else {
-                val button = element.create.button {
-                    type = "button"
-                    textContent = label
-                    setAttribute("title", title)
-                    data("command", command)
-                    css {
-                        padding = Padding(4.px, 8.px)
-                        minWidth = 28.px
-                        backgroundColor = Color("#374151")
-                        border = Border(1.px, BorderStyle.solid, Color("#4b5563"))
-                        borderRadius = 4.px
-                        color = Color("#e5e7eb")
-                        cursor = Cursor.pointer
-                        fontSize = 14.px
-                    }
-                    // Apply extra style via raw attribute if provided
-                    if (extraStyle.isNotBlank()) {
-                        val currentStyle = raw.getAttribute("style") ?: ""
-                        raw.setAttribute("style", "$currentStyle $extraStyle")
-                    }
-                    onMouseOver { raw.asDynamic().style.background = "#4b5563" }
-                    onMouseOut { raw.asDynamic().style.background = "#374151" }
-                }
-                toolbar.appendChild(button)
             }
         }
 
-        element.appendChild(toolbar)
-
-        // Create hidden input to store HTML content
-        val hiddenInput = element.create.input {
-            type = "hidden"
-            name = config.inputName
-            value = config.initialContent
+        // Hidden input for form submission (replaces the textarea)
+        input(type = InputType.hidden, name = inputName) {
+            ref(hiddenInputRef)
+            value = initialContent
         }
 
-        // Create editor area
-        val editor = element.create.div {
-            contentEditable = "true"
-            className = "wysiwyg-editor"
+        // Editor area - replaces the textarea with contenteditable
+        div("wysiwyg-editor") {
+            ref(editorRef)
+            contentEditable = true
             css {
                 minHeight = config.minHeight.px
                 padding = Padding(12.px)
@@ -144,47 +191,51 @@ fun initWysiwygEnhancement(element: EnhancementElement, config: WysiwygConfig) {
                 overflowY = Overflow.auto
                 outline = Outline.none
             }
-            if (config.initialContent.isNotBlank()) {
-                innerHTML = config.initialContent
+
+            // Set initial content from textarea
+            if (initialContent.isNotBlank()) {
+                unsafe { +initialContent }
             }
-            if (config.placeholder.isNotBlank()) {
-                data("placeholder", config.placeholder)
+
+            if (placeholder.isNotBlank()) {
+                attributes["data-placeholder"] = placeholder
             }
-            // Update hidden input on content change
-            onInput(fun() {
-                (hiddenInput as? HTMLInputElement)?.value = sanitizeHtml(raw.innerHTML)
-            })
-            // Ctrl+Enter to submit form
-            onKeyDown { e ->
-                if (e.ctrlKey == true && e.key == "Enter") {
+
+            // Sync content to hidden input on changes
+            onInput { _: InputEvent ->
+                hiddenInputRef.element.value = sanitizeHtml(editorRef.element.innerHTML.toString())
+            }
+
+            // Handle Ctrl+Enter / Alt+Enter for form submit
+            onKeyDown { e: KeyboardEvent ->
+                if ((e.ctrlKey || e.altKey) && e.key == "Enter") {
                     e.preventDefault()
-                    (hiddenInput as? HTMLInputElement)?.value = sanitizeHtml(raw.innerHTML)
-                    (raw.closest("form") as? HTMLFormElement)?.requestSubmit()
-                    // Clear editor after submit
-                    raw.innerHTML = ""
-                    (hiddenInput as? HTMLInputElement)?.value = ""
+                    hiddenInputRef.element.value = sanitizeHtml(editorRef.element.innerHTML.toString())
+                    editorRef.element.closestForm()?.requestSubmit()
+                    setInnerHtml(editorRef.element, "")
+                    hiddenInputRef.element.value = ""
                 }
             }
         }
+    }
 
-        element.appendChild(editor)
-        element.appendChild(hiddenInput)
+    console.log("WYSIWYG editor initialized")
+}
 
-        // Wire up toolbar buttons
-        val toolbarButtons = toolbar.querySelectorAll("button[data-command]")
-        for (i in 0 until toolbarButtons.length) {
-            val btn = toolbarButtons.item(i)
-            val command = btn?.asDynamic()?.getAttribute("data-command") as? String ?: continue
-
-            btn.asDynamic().onclick = { e: dynamic ->
-                e.preventDefault()
-                editor.asDynamic().focus()
-                document.asDynamic().execCommand(command, false, "")
-            }
-        }
-
-        console.log("WYSIWYG editor initialized")
-    } catch (e: Exception) {
-        console.error("Failed to initialize WYSIWYG editor", e)
+/**
+ * Data class for toolbar button configuration.
+ * Uses typed CSS properties instead of string styles.
+ */
+private data class ToolbarButton(
+    val command: String,
+    val label: String,
+    val title: String,
+    val fontWeight: FontWeight? = null,
+    val fontStyle: FontStyle? = null,
+    val textDecoration: TextDecoration? = null,
+    val isSeparator: Boolean = false
+) {
+    companion object {
+        fun separator() = ToolbarButton("separator", "", "", isSeparator = true)
     }
 }
