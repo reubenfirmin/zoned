@@ -1,12 +1,17 @@
 package zoned.framework.libs
 
 import js.objects.Record
-import js.objects.jso
-import kotlinx.browser.document
-import kotlinx.browser.window
-import org.w3c.dom.parsing.DOMParser
-import org.w3c.xhr.XMLHttpRequest
+import js.objects.unsafeJso
 import web.dom.Element
+import web.dom.document
+import web.parsing.DOMParser
+import web.parsing.DOMParserSupportedType
+import web.window.window
+import web.xhr.XMLHttpRequest
+
+// Helper to access DOMParserSupportedType.textHtml - works around Kotlin/JS type inference issues
+private val TEXT_HTML: DOMParserSupportedType
+    get() = "text/html".asDynamic().unsafeCast<DOMParserSupportedType>()
 
 // this is here for the initial import - see https://htmx.org/docs/#webpack
 @JsModule("htmx.org/dist/htmx.esm.js")
@@ -72,7 +77,7 @@ fun attachHTMXToWindow(htmx: HTMX) {
  * Convert a Kotlin Map to a typed JS Record for HTMX form values
  */
 fun Map<String, String>.toRecord(): Record<String, String> {
-    val record: Record<String, String> = jso()
+    val record: Record<String, String> = unsafeJso()
     this.forEach { (k, v) -> record[k] = v }
     return record
 }
@@ -116,65 +121,24 @@ object HTMXHelper {
 
             if (targetEl.tagName == "BODY") {
                 val response = xhr.responseText
-                val parsedResponse = parser.parseFromString(response, "text/html")
-                val bodyAttributes = parsedResponse.getElementsByTagName("body").item(0)!!.attributes
+                val parsedResponse = parser.parseFromString(response, TEXT_HTML)
+                val parsedBody = parsedResponse.body ?: return@on
+                val bodyAttributes = parsedBody.attributes
 
                 // remove old
                 for (i in (0 until targetEl.attributes.length).reversed()) {
-                    val attr = targetEl.attributes.item(i)!!
+                    val attr = targetEl.attributes[i] ?: continue
                     targetEl.removeAttribute(attr.name)
                 }
 
                 // set new
                 for (i in 0 until bodyAttributes.length) {
-                    val attr = bodyAttributes.item(i)!!
+                    val attr = bodyAttributes[i] ?: continue
                     targetEl.setAttribute(attr.name, attr.value)
                 }
             }
         }
 
-        setupGlobalErrorHandler()
-    }
-
-    private fun setupGlobalErrorHandler() {
-        val originalOnError = window.onerror
-
-        window.onerror = { message, source, lineNo, colNo, error ->
-            if (error is Throwable) {
-                val errorString = error.toString()
-                val stackTrace = error.stackTraceToString()
-
-                if (errorString.contains("TypeError: Cannot read properties of null (reading 'classList')") &&
-                    stackTrace.contains("htmx.org")) {
-
-                    console.warn("Suppressed HTMX classList error:", errorString)
-                    console.warn("Error occurred at:", source, lineNo, colNo)
-                    console.warn("Stack trace:", stackTrace)
-
-                    // Return true to indicate that the error has been handled
-                    true
-                } else {
-                    // For other errors, call the original error handler if it exists
-                    if (originalOnError != null) {
-                        console.log("Calling original 1")
-                        originalOnError(message, source, lineNo, colNo, error)
-                    } else {
-                        // If no original handler, log the error and rethrow
-                        console.error("Uncaught error:", error)
-                        false // Allows the error to propagate
-                    }
-                }
-            } else {
-                // For non-Error objects, call the original error handler or log and rethrow
-                if (originalOnError != null) {
-                    console.log("Calling original 2")
-                    originalOnError(message, source, lineNo, colNo, error)
-                } else {
-                    console.error("Uncaught error:", message)
-                    false // Allows the error to propagate
-                }
-            }
-        }
     }
 
     /**
@@ -185,7 +149,7 @@ object HTMXHelper {
      * @param swap HTMX swap strategy (default: innerHTML)
      */
     fun post(url: String, target: String, values: Map<String, String> = emptyMap(), swap: String = "innerHTML") {
-        htmx.ajax("POST", url, jso<HTMXAjaxOptions> {
+        htmx.ajax("POST", url, unsafeJso<HTMXAjaxOptions> {
             this.target = target
             this.swap = swap
             if (values.isNotEmpty()) {
@@ -201,7 +165,7 @@ object HTMXHelper {
      * @param swap HTMX swap strategy (default: innerHTML)
      */
     fun get(url: String, target: String, swap: String = "innerHTML") {
-        htmx.ajax("GET", url, jso<HTMXAjaxOptions> {
+        htmx.ajax("GET", url, unsafeJso<HTMXAjaxOptions> {
             this.target = target
             this.swap = swap
         })
@@ -214,7 +178,7 @@ object HTMXHelper {
      * @param swap HTMX swap strategy (default: innerHTML)
      */
     fun delete(url: String, target: String, swap: String = "innerHTML") {
-        htmx.ajax("DELETE", url, jso<HTMXAjaxOptions> {
+        htmx.ajax("DELETE", url, unsafeJso<HTMXAjaxOptions> {
             this.target = target
             this.swap = swap
         })
@@ -228,7 +192,7 @@ object HTMXHelper {
      * @param swap HTMX swap strategy (default: innerHTML)
      */
     fun put(url: String, target: String, values: Map<String, String> = emptyMap(), swap: String = "innerHTML") {
-        htmx.ajax("PUT", url, jso<HTMXAjaxOptions> {
+        htmx.ajax("PUT", url, unsafeJso<HTMXAjaxOptions> {
             this.target = target
             this.swap = swap
             if (values.isNotEmpty()) {

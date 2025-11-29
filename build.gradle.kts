@@ -32,7 +32,7 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 api(kotlin("stdlib"))
-                api("org.jetbrains.kotlinx:kotlinx-html:0.9.1")
+                api("org.jetbrains.kotlinx:kotlinx-html:0.12.0-web")
                 api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
             }
         }
@@ -76,7 +76,7 @@ kotlin {
                 api("org.jetbrains.kotlin-wrappers:kotlin-js")
                 api("org.jetbrains.kotlin-wrappers:kotlin-browser")
                 api("org.jetbrains.kotlin-wrappers:kotlin-css")
-                api("org.jetbrains.kotlinx:kotlinx-html-js:0.11.0")
+                api("org.jetbrains.kotlinx:kotlinx-html-js:0.12.0-web")
 
                 api(npm("tailwindcss", "4.0.4"))
                 api(npm("@tailwindcss/cli", "4.0.4"))

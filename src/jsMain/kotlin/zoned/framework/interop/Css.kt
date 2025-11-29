@@ -4,9 +4,12 @@ import kotlinx.css.CssBuilder
 import kotlinx.html.CommonAttributeGroupFacade
 import kotlinx.html.classes
 import kotlinx.html.style
+import web.cssom.ClassName
 import web.dom.document
 import web.html.HTMLElement
 import web.html.HTMLStyleElement
+import web.html.HtmlSource
+import web.html.asStringOrNull
 
 /**
  * Worried about performance of inlining css? Don't be. https://danielnagy.me/posts/Post_tsr8q6sx37pl
@@ -39,7 +42,7 @@ fun HTMLElement.css(block: CssBuilder.() -> Unit) {
 }
 
 fun HTMLElement.classes(classes: String) {
-    this.className = classes.trim().split(Regex("\\s+")).distinct().joinToString(" ")
+    this.className = ClassName(classes.trim().split(Regex("\\s+")).distinct().joinToString(" "))
 }
 
 var counter = 0
@@ -65,7 +68,8 @@ fun CommonAttributeGroupFacade.cssClass(className: String = "clzz${counter++}", 
     val styleTag = head.getElementsByTagName("style").firstOrNull() as? HTMLStyleElement
         ?: document.createElement("style").also { head.appendChild(it) } as HTMLStyleElement
 
-    styleTag.innerHTML += "\n$style"
+    val currentHtml = styleTag.innerHTML.asStringOrNull() ?: ""
+    styleTag.innerHTML = HtmlSource("$currentHtml\n$style")
 
     this.classes = setOf(className) + this.classes
 }
@@ -110,7 +114,8 @@ fun CommonAttributeGroupFacade.cssClassWithHover(
     val styleTag = head.getElementsByTagName("style").firstOrNull() as? HTMLStyleElement
         ?: document.createElement("style").also { head.appendChild(it) } as HTMLStyleElement
 
-    styleTag.innerHTML += "\n$style"
+    val currentHtml = styleTag.innerHTML.asStringOrNull() ?: ""
+    styleTag.innerHTML = HtmlSource("$currentHtml\n$style")
 
     this.classes = setOf(className) + this.classes
 }

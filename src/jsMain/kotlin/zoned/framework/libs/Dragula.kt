@@ -1,6 +1,6 @@
 package zoned.framework.libs
 
-import org.w3c.dom.Element
+import web.dom.Element
 
 @JsModule("dragula")
 @JsNonModule

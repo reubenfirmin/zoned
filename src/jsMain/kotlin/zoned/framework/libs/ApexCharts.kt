@@ -1,11 +1,10 @@
 package zoned.framework.libs
 
-import js.objects.jso
-import kotlinx.browser.document
-import org.w3c.dom.Element
-import org.w3c.dom.HTMLElement
-import org.w3c.dom.NodeList
-import org.w3c.dom.get
+import js.objects.unsafeJso
+import web.dom.Element
+import web.dom.NodeList
+import web.dom.document
+import web.html.HTMLElement
 import zoned.framework.charts.*
 
 @JsModule("apexcharts")
@@ -23,7 +22,7 @@ fun initCharts() {
     initCharts(barCharts, ::initBarChart)
 }
 
-fun initCharts(elements: NodeList, initializer: (HTMLElement) -> Unit) {
+fun initCharts(elements: NodeList<Element>, initializer: (HTMLElement) -> Unit) {
     for (i in 0 until elements.length) {
         val element = elements[i]!! as HTMLElement
         if (!element.hasAttribute("rendered-chart")) {
@@ -50,7 +49,7 @@ fun initAreaChart(element: HTMLElement) {
                 console.warn("Chart series must have c-data, c-label, c-color")
                 null
             } else {
-                val series: Series = jso {
+                val series: Series = unsafeJso {
                     this.data = data
                     this.name = label
                     this.color = color
@@ -93,7 +92,7 @@ fun initBarChart(element: HTMLElement) {
                 item.trim().toDoubleOrNull()
             }?.filterNotNull()?:listOf()
 
-            jso {
+            unsafeJso {
                 this.name = el.getAttribute("c-name") ?: ""
                 this.data = data.toTypedArray()
             }

@@ -1,16 +1,19 @@
 package zoned.framework.ui.enhancements
 
-import js.objects.jso
+import js.core.asString
+import js.objects.unsafeJso
 import kotlinx.html.TagConsumer
 import kotlinx.html.div
+import web.cssom.ClassName
 import web.dom.Element
+import web.dom.ElementId
 import web.dom.Node
 import web.dom.document
 import web.events.EventType
 import web.events.addEventListener
 import web.html.HTMLElement
 import web.html.HTMLInputElement
-import web.uievents.MouseEvent
+import web.mouse.MouseEvent
 import zoned.framework.dom.Ref
 import zoned.framework.dom.insertChildren
 import zoned.framework.dom.onMount
@@ -62,9 +65,9 @@ fun TagConsumer<HTMLElement>.initSelectableTableEnhancement(config: SelectableTa
                 val checkbox = row.querySelector(config.checkboxSelector) as? HTMLInputElement
                 checkbox?.checked = selected
                 if (selected) {
-                    row.classList.add(config.selectedClass)
+                    row.classList.add(ClassName(config.selectedClass))
                 } else {
-                    row.classList.remove(config.selectedClass)
+                    row.classList.remove(ClassName(config.selectedClass))
                 }
             }
 
@@ -86,9 +89,9 @@ fun TagConsumer<HTMLElement>.initSelectableTableEnhancement(config: SelectableTa
                 val countSpan = actionBar.querySelector(".selection-count")
 
                 if (selectedIds.isEmpty()) {
-                    actionBar.classList.add("hidden")
+                    actionBar.classList.add(ClassName("hidden"))
                 } else {
-                    actionBar.classList.remove("hidden")
+                    actionBar.classList.remove(ClassName("hidden"))
                     countSpan?.textContent = "${selectedIds.size} selected"
                 }
             }
@@ -102,7 +105,7 @@ fun TagConsumer<HTMLElement>.initSelectableTableEnhancement(config: SelectableTa
             fun hideContextMenu() {
                 // Look for context menu by common selector pattern
                 val contextMenu = document.querySelector("[id$='-context-menu']") as? HTMLElement
-                contextMenu?.classList?.add("hidden")
+                contextMenu?.classList?.add(ClassName("hidden"))
             }
 
             // Toggle selection for a row
@@ -155,7 +158,7 @@ fun TagConsumer<HTMLElement>.initSelectableTableEnhancement(config: SelectableTa
                     })
 
                     // Also add click handler on the checkbox cell (the td that contains the checkbox)
-                    val checkboxCell = checkbox.parentElement as? HTMLElement
+                    val checkboxCell = checkbox.parentElement
                     checkboxCell?.addEventListener(EventType<MouseEvent>("click"), { event: MouseEvent ->
                         // Only handle if click was on the cell, not the checkbox itself
                         val target = event.target as? Element
@@ -195,12 +198,12 @@ fun TagConsumer<HTMLElement>.initSelectableTableEnhancement(config: SelectableTa
 
                 // Hide menu when clicking outside
                 fun hideMoveMenu() {
-                    getMoveMenu()?.classList?.add("hidden")
+                    getMoveMenu()?.classList?.add(ClassName("hidden"))
                 }
 
                 // Show menu
                 fun showMoveMenu() {
-                    getMoveMenu()?.classList?.remove("hidden")
+                    getMoveMenu()?.classList?.remove(ClassName("hidden"))
                 }
 
                 // Archive button
@@ -232,16 +235,17 @@ fun TagConsumer<HTMLElement>.initSelectableTableEnhancement(config: SelectableTa
                     val moveMenu = getMoveMenu()
 
                     // Check if menu is already visible
-                    val isVisible = moveMenu?.classList?.contains("hidden") != true
+                    val isVisible = moveMenu?.classList?.contains(ClassName("hidden")) != true
 
                     if (isVisible) {
                         hideMoveMenu()
                     } else {
+                        // moveMenu is smart-cast to non-null here (if it were null, isVisible would be true)
                         // Build URL with query params and fetch menu via HTMXHelper
                         config.moveMenuUrl?.let { baseUrl ->
                             val separator = if (baseUrl.contains("?")) "&" else "?"
                             val url = "$baseUrl${separator}propertyIds=${selectedIds.joinToString(",")}&folderId=$folderId"
-                            val target = moveMenu?.id?.let { "#$it" } ?: return@addEventListener
+                            val target = "#${moveMenu.id.asString()}"
                             HTMXHelper.get(url, target)
                             showMoveMenu()
                         }
@@ -280,8 +284,8 @@ fun TagConsumer<HTMLElement>.initSelectableTableEnhancement(config: SelectableTa
                 // Adjust draggable selector - if we found tbody, rows are direct children
                 val draggableSelector = if (sortableContainer != container) "tr" else config.rowSelector
 
-                val options: SortableOptions = jso {
-                    group = jso<SortableGroupOptions> {
+                val options: SortableOptions = unsafeJso {
+                    group = unsafeJso<SortableGroupOptions> {
                         name = config.dragGroup
                         pull = config.dragPull
                         put = config.dragPut
@@ -323,11 +327,12 @@ fun TagConsumer<HTMLElement>.initSelectableTableEnhancement(config: SelectableTa
                             }
 
                             // Extract folder IDs from element IDs (e.g., "property-rows-abc123" -> "abc123", "folder-xyz456" -> "xyz456")
-                            fun extractFolderId(elementId: String): String {
+                            fun extractFolderId(elementId: ElementId): String {
+                                val id = elementId.asString()
                                 return when {
-                                    elementId.startsWith("property-rows-") -> elementId.removePrefix("property-rows-")
-                                    elementId.startsWith("folder-") -> elementId.removePrefix("folder-")
-                                    else -> elementId
+                                    id.startsWith("property-rows-") -> id.removePrefix("property-rows-")
+                                    id.startsWith("folder-") -> id.removePrefix("folder-")
+                                    else -> id
                                 }
                             }
 

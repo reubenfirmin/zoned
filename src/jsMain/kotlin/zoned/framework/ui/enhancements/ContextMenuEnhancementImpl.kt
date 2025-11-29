@@ -3,6 +3,7 @@ package zoned.framework.ui.enhancements
 import kotlinx.css.*
 import kotlinx.html.TagConsumer
 import kotlinx.html.div
+import web.cssom.ClassName
 import web.dom.Element
 import web.dom.Node
 import web.dom.document
@@ -10,8 +11,8 @@ import web.html.HTMLElement
 import web.events.EventType
 import web.events.addEventListener
 import web.events.removeEventListener
-import web.uievents.KeyboardEvent
-import web.uievents.MouseEvent
+import web.keyboard.KeyboardEvent
+import web.mouse.MouseEvent
 import zoned.framework.dom.Ref
 import zoned.framework.dom.insertChildren
 import zoned.framework.dom.onContextMenu
@@ -204,9 +205,9 @@ private fun showMenu(menu: HTMLElement, x: Int, y: Int) {
         left = x.px
         top = y.px
     }
-    menu.classList.remove("hidden")
+    menu.classList.remove(ClassName("hidden"))
 }
 
 private fun hideMenu(menu: HTMLElement) {
-    menu.classList.add("hidden")
+    menu.classList.add(ClassName("hidden"))
 }

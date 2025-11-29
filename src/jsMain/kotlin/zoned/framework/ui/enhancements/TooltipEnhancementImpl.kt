@@ -15,7 +15,7 @@ import zoned.framework.dom.Ref
 import zoned.framework.dom.insertChildren
 import zoned.framework.dom.onMouseEnter
 import zoned.framework.dom.onMouseLeave
-import web.uievents.MouseEvent
+import web.mouse.MouseEvent
 import zoned.framework.dom.ref
 import zoned.framework.interop.css
 

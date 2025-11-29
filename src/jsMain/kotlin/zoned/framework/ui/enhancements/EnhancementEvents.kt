@@ -5,8 +5,9 @@ import web.events.Event
 import web.events.EventType
 import web.events.addEventListener
 import web.html.HTMLElement
-import web.uievents.KeyboardEvent
-import web.uievents.MouseEvent
+import web.keyboard.KeyboardEvent
+import web.mouse.MouseEvent
+import web.input.InputEvent
 
 /**
  * Event listener bindings for HTMLElement in enhancement implementations.
@@ -70,7 +71,7 @@ fun HTMLElement.onKeyUp(handler: (KeyboardEvent) -> Unit) =
     addTypedEventListener("keyup", handler)
 
 // Input events
-fun HTMLElement.onInput(handler: (web.uievents.InputEvent) -> Unit) =
+fun HTMLElement.onInput(handler: (InputEvent) -> Unit) =
     addTypedEventListener("input", handler)
 
 // Form element events
