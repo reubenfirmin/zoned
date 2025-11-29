@@ -16,6 +16,23 @@ fun CommonAttributeGroupFacade.css(block: CssBuilder.() -> Unit) {
     style = CssBuilder().apply(block).toString().removeSuffix("\n")
 }
 
+/**
+ * Sets inline styles on an HTMLElement.
+ *
+ * WARNING: This REPLACES the entire style attribute. If you need to modify
+ * individual properties without losing existing styles, use element.style.propertyName directly.
+ *
+ * Example - this will lose position/z-index set earlier:
+ * ```
+ * element.css { position = Position.absolute; zIndex = 100 }
+ * element.css { opacity = 1 }  // Now only has opacity!
+ * ```
+ *
+ * Instead, for incremental updates use:
+ * ```
+ * element.style.opacity = "1"
+ * ```
+ */
 fun HTMLElement.css(block: CssBuilder.() -> Unit) {
     val style = CssBuilder().apply(block)
     this.setAttribute("style", style.toString().removeSuffix("\n"))
