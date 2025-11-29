@@ -1,13 +1,15 @@
 package zoned.framework.ui.enhancements
 
-import js.objects.jso
+import js.core.asString
+import js.objects.unsafeJso
 import kotlinx.html.TagConsumer
 import kotlinx.html.div
+import web.cssom.ClassName
 import web.dom.Node
 import web.events.EventType
 import web.events.addEventListener
 import web.html.HTMLElement
-import web.uievents.DragEvent
+import web.dnd.DragEvent
 import zoned.framework.dom.Ref
 import zoned.framework.dom.insertChildren
 import zoned.framework.dom.onMount
@@ -46,7 +48,7 @@ fun TagConsumer<HTMLElement>.initSortableEnhancement(config: SortableConfig, chi
                     event.stopPropagation()
                     dragCounter++
                     if (dragCounter == 1) {
-                        container.classList.add(config.dropTargetClass)
+                        container.classList.add(ClassName(config.dropTargetClass))
                     }
                 })
 
@@ -54,19 +56,19 @@ fun TagConsumer<HTMLElement>.initSortableEnhancement(config: SortableConfig, chi
                     event.stopPropagation()
                     dragCounter--
                     if (dragCounter == 0) {
-                        container.classList.remove(config.dropTargetClass)
+                        container.classList.remove(ClassName(config.dropTargetClass))
                     }
                 })
 
                 container.addEventListener(EventType<DragEvent>("drop"), { event: DragEvent ->
                     event.stopPropagation()
                     dragCounter = 0
-                    container.classList.remove(config.dropTargetClass)
+                    container.classList.remove(ClassName(config.dropTargetClass))
                 })
             }
 
-            val options: SortableOptions = jso {
-                group = jso<SortableGroupOptions> {
+            val options: SortableOptions = unsafeJso {
+                group = unsafeJso<SortableGroupOptions> {
                     name = config.group
                     pull = config.pull
                     put = config.put
@@ -90,9 +92,9 @@ fun TagConsumer<HTMLElement>.initSortableEnhancement(config: SortableConfig, chi
                             target = config.htmxTarget ?: "body",
                             swap = config.htmxSwap ?: "innerHTML",
                             values = mapOf(
-                                "itemId" to event.item.id,
-                                "fromContainerId" to event.from.id,
-                                "toContainerId" to event.to.id,
+                                "itemId" to event.item.id.asString(),
+                                "fromContainerId" to event.from.id.asString(),
+                                "toContainerId" to event.to.id.asString(),
                                 "oldIndex" to event.oldIndex.toString(),
                                 "newIndex" to event.newIndex.toString()
                             )

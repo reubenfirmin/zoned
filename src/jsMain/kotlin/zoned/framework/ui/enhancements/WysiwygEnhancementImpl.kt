@@ -11,9 +11,9 @@ import web.html.HTMLInputElement
 import web.html.HTMLTextAreaElement
 import zoned.framework.dom.*
 import zoned.framework.dom.setInnerHtml
-import web.uievents.MouseEvent
-import web.uievents.InputEvent
-import web.uievents.KeyboardEvent
+import web.mouse.MouseEvent
+import web.input.InputEvent
+import web.keyboard.KeyboardEvent
 import zoned.framework.interop.closestForm
 import zoned.framework.interop.css
 import zoned.framework.interop.cssClassWithHover

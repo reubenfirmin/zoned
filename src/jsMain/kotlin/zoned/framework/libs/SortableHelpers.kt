@@ -1,11 +1,12 @@
 package zoned.framework.libs
 
-import js.objects.jso
+import js.objects.unsafeJso
 import web.dom.Element
+import web.dom.ElementId
 import web.dom.document
 
 data class SortableConfig(
-    val elementId: String,
+    val elementId: ElementId,
     val group: String = "default",
     val animation: Int = 150,
     val draggable: String? = null,
@@ -16,9 +17,9 @@ data class SortableConfig(
 )
 
 data class SortableDropEvent(
-    val itemId: String,
-    val fromId: String,
-    val toId: String,
+    val itemId: ElementId,
+    val fromId: ElementId,
+    val toId: ElementId,
     val oldIndex: Int,
     val newIndex: Int,
     val item: Element,
@@ -32,7 +33,7 @@ fun makeSortable(config: SortableConfig) {
         return
     }
 
-    val options: SortableOptions = jso {
+    val options: SortableOptions = unsafeJso {
         group = config.group
         animation = config.animation
         config.draggable?.let { draggable = it }

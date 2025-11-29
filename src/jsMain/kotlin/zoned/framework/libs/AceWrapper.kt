@@ -1,6 +1,6 @@
 package zoned.framework.libs
 
-import web.uievents.KeyboardEvent
+import web.keyboard.KeyboardEvent
 
 @JsModule("ace-builds/src-noconflict/ace")
 @JsNonModule

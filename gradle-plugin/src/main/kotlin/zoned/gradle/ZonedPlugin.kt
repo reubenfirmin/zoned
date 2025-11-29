@@ -202,7 +202,7 @@ class ZonedPlugin : Plugin<Project> {
                     }
 
                     echo "🚀 Zoned Hot Reload"
-                    echo "   Watching: src/{jvmMain,commonMain,jsMain}/**/*.kt, ~/.m2/repository/io/4rc/zoned*/**/*.jar"
+                    echo "   Watching: src/{jvmMain,commonMain,jsMain}/**/*.kt, src/jvmMain/resources/**/*.css, ~/.m2/repository/io/4rc/zoned*/**/*.jar"
                     echo "   Port: ${'$'}PORT"
                     echo "   Press Ctrl+C to stop"
                     echo ""
@@ -318,10 +318,7 @@ class ZonedPlugin : Plugin<Project> {
 
                     # Track newest file modification time (includes zoned library)
                     get_newest_mtime() {
-                        {
-                            find src/jvmMain src/commonMain src/jsMain -name "*.kt" -printf '%T@\n' 2>/dev/null
-                            find ~/.m2/repository/io/4rc/zoned* -name "*.jar" -printf '%T@\n' 2>/dev/null
-                        } | sort -rn | head -1
+                        { find src/jvmMain src/commonMain src/jsMain -name "*.kt" -printf '%T@\n' 2>/dev/null; find src/jvmMain/resources -name "*.css" -printf '%T@\n' 2>/dev/null; find ~/.m2/repository/io/4rc/zoned* -name "*.jar" -printf '%T@\n' 2>/dev/null; } | sort -rn | head -1
                     }
 
                     # Check if zoned library changed (returns 0 if changed, 1 if not)

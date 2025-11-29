@@ -1,8 +1,12 @@
 package zoned.framework.charts
 
-import js.objects.jso
-import kotlinx.browser.document
-import org.w3c.dom.Element
+import js.objects.unsafeJso
+import web.cssom.ClassName
+import web.dom.document
+import web.dom.Element
+import web.events.Event
+import web.events.EventType
+import web.events.addEventListener
 import zoned.framework.libs.ApexCharts
 
 external interface HorizontalBarOptions<Y: Number> {
@@ -69,65 +73,65 @@ class HorizontalBarChart<Y: Number>(element: Element,
         chart.render()
 
         // init again when toggling dark mode
-        document.addEventListener("dark-mode", {
+        document.addEventListener(EventType<Event>("dark-mode"), { _: Event ->
             chart.updateOptions(options(series, labelsInBars, formatter))
         })
     }
 
     // TODO much in common with the AreaChart. combine. also make more flexible
     private fun options(data: Array<BarSeries<Y>>, labelsInBars: Boolean, formatter: (Y, FormatterContext<Y>) -> String): HorizontalBarOptions<Y> {
-        val darkMode = document.documentElement?.classList?.contains("dark") ?: false
+        val darkMode = document.documentElement?.classList?.contains(ClassName("dark")) ?: false
         val labelColor = if (darkMode) "#9CA3AF" else "#6B7280"
         val fontFamily = "Inter, sans-serif"
         val theme = if (darkMode) "dark" else "light"
 
-        val options: HorizontalBarOptions<Y> = jso {
-            chart = jso {
+        val options: HorizontalBarOptions<Y> = unsafeJso {
+            chart = unsafeJso {
                 type = "bar"
                 height = 420
                 this.fontFamily = fontFamily
                 foreColor = labelColor
-                toolBar = jso {
+                toolBar = unsafeJso {
                     show = true
                 }
             }
-            plotOptions = jso {
-                bar = jso {
+            plotOptions = unsafeJso {
+                bar = unsafeJso {
                     horizontal = true
-                    dataLabels = jso {
+                    dataLabels = unsafeJso {
                         position = "bottom"
                     }
                 }
             }
             series = data
-            dataLabels = jso {
+            dataLabels = unsafeJso {
                 enabled = labelsInBars
                 textAnchor = "start"
-                style = jso {
+                style = unsafeJso {
                     this.fontFamily = fontFamily
                     this.fontSize = "18px"
                 }
                 offsetX = 0
                 this.formatter = formatter
             }
-            tooltip = jso {
+            tooltip = unsafeJso {
                 enabled = false
-                style = jso {
+                style = unsafeJso {
                     this.fontFamily = fontFamily
                     fontSize = "14px"
                 }
                 this.theme = theme
             }
-            grid = jso {
+            grid = unsafeJso {
                 show = true
                 this.borderColor = borderColor
                 strokeDashArray = 1
-                padding = jso {
+                padding = unsafeJso {
                     left = 35
                     bottom = 15
                 }
             }
-            yaxis = jso {
+            yaxis = unsafeJso {
                 show = false
             }
 //            legend = jso {
@@ -141,17 +145,17 @@ class HorizontalBarChart<Y: Number>(element: Element,
 //                    horizontal = 10
 //                }
 //            }
-            responsive = arrayOf(jso {
+            responsive = arrayOf(unsafeJso {
                 breakpoint = 1024
-                options = jso {
-                    xaxis = jso {
-                        labels = jso {
+                options = unsafeJso {
+                    xaxis = unsafeJso {
+                        labels = unsafeJso {
                             show = false
                         }
                     }
                 }
             })
-            xaxis = jso {
+            xaxis = unsafeJso {
                 categories = this@HorizontalBarChart.labels
             }
         }

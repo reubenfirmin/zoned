@@ -3,10 +3,8 @@ package zoned.framework.routing
 import kotlinx.browser.window
 import kotlinx.html.*
 import web.dom.document
-import zoned.framework.dom.DomBehavior
 import zoned.framework.interop.appendTo
 import zoned.framework.interop.clear
-import kotlin.js.Promise
 
 /**
  * Set up new routes either using the Routes builder, or the route() helper functions (found in Route).
@@ -24,20 +22,14 @@ object Router {
                     document.body.apply {
                         clear()
                         val consumer = appendTo()
-
-                        when (val result = route.handler(consumer, Params(params))) {
-                            is Promise<*> -> result.then { DomBehavior.flush() }
-                            else -> DomBehavior.flush()
-                        }
+                        // Route handler builds DOM synchronously via ElementTrackingConsumer
+                        route.handler(consumer, Params(params))
                     }
                 }
                 RenderMode.PARTIAL -> {
                     // App handles DOM manipulation, just invoke handler
                     val consumer = document.body.appendTo()
-                    when (val result = route.handler(consumer, Params(params))) {
-                        is Promise<*> -> result.then { DomBehavior.flush() }
-                        else -> DomBehavior.flush()
-                    }
+                    route.handler(consumer, Params(params))
                 }
             }
 
@@ -54,7 +46,6 @@ object Router {
                 console.log(RouteTrie.visualize())
             }
         }
-        DomBehavior.flush()
     }
 
     fun navigate(path: String) {

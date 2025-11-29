@@ -1,11 +1,12 @@
 package zoned.framework.interop
 
-import kotlinx.browser.document
 import kotlinx.html.TagConsumer
 import web.dom.Element
-import kotlinx.html.dom.append
+import web.dom.ElementId
+import web.dom.document
 import web.html.HTMLCollection
 import web.html.HTMLElement
+import zoned.framework.dom.ElementTrackingConsumer
 
 fun Element.clear() {
     while (firstChild != null) {
@@ -13,15 +14,19 @@ fun Element.clear() {
     }
 }
 
-// bridge between kotlinx.html (which is still on org.w3c.dom) and the kotlin-browser wrapper, which uses the web.dom api
-fun HTMLElement.appendTo(): TagConsumer<HTMLElement> = unsafeCast<org.w3c.dom.HTMLElement>().append as TagConsumer<HTMLElement>
+/**
+ * Build child elements using kotlinx.html DSL with element tracking.
+ * Returns an ElementTrackingConsumer that supports synchronous ref binding
+ * and mount callbacks.
+ */
+fun HTMLElement.appendTo(): ElementTrackingConsumer = ElementTrackingConsumer(this)
 
 fun <T : Element> HTMLCollection<T>.firstOrNull(): T? {
-    return if (length > 0) get(0)  else null
+    return if (length > 0) get(0) else null
 }
 
 fun getHtmlElement(id: String): HTMLElement? {
-    return document.getElementById(id)?.unsafeCast<HTMLElement>()
+    return document.getElementById(ElementId(id)) as? HTMLElement
 }
 
 /**
@@ -29,6 +34,6 @@ fun getHtmlElement(id: String): HTMLElement? {
  * Useful for modals, tooltips, and other body-level elements.
  */
 fun addToBody(block: TagConsumer<HTMLElement>.() -> Unit) {
-    val body = document.body?.unsafeCast<HTMLElement>() ?: error("document.body not available")
-    body.appendTo().block()
+    val body = document.body ?: error("document.body not available")
+    ElementTrackingConsumer(body).block()
 }

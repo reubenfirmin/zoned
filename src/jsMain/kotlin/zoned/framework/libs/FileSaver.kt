@@ -1,7 +1,7 @@
 package zoned.framework.libs
 
-import org.w3c.files.Blob
-import org.w3c.files.BlobPropertyBag
+import web.blob.Blob
+import web.blob.BlobPropertyBag
 
 @JsModule("file-saver")
 @JsNonModule

@@ -1,7 +1,7 @@
 package zoned.framework.libs
 
-import org.w3c.files.Blob
-import org.w3c.files.File
+import web.blob.Blob
+import web.file.File
 import kotlin.js.Promise
 
 @JsModule("browser-fs-access")

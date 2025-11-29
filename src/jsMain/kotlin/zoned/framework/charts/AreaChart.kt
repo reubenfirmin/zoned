@@ -1,8 +1,12 @@
 package zoned.framework.charts
 
-import js.objects.jso
-import kotlinx.browser.document
-import org.w3c.dom.Element
+import js.objects.unsafeJso
+import web.cssom.ClassName
+import web.dom.document
+import web.dom.Element
+import web.events.Event
+import web.events.EventType
+import web.events.addEventListener
 import zoned.framework.libs.ApexCharts
 
 external interface ChartOptions {
@@ -178,13 +182,13 @@ class AreaChart(element: Element, series: List<Pair<Series, AxisOptions>>, xaxis
         chart.render()
 
         // init again when toggling dark mode
-        document.addEventListener("dark-mode", {
+        document.addEventListener(EventType<Event>("dark-mode"), { _: Event ->
             chart.updateOptions(options(series, xaxisLabels))
         })
     }
 
     fun options(series: List<Pair<Series, AxisOptions>>, xaxisLabels: Array<String>): ChartOptions {
-        val darkMode = document.documentElement?.classList?.contains("dark") ?: false
+        val darkMode = document.documentElement?.classList?.contains(ClassName("dark")) ?: false
         val borderColor = if (darkMode) "#374151" else "#F3F4F6"
         val labelColor = if (darkMode) "#9CA3AF" else "#6B7280"
         val opacityFrom = if (darkMode) 0.0 else 0.15
@@ -192,67 +196,67 @@ class AreaChart(element: Element, series: List<Pair<Series, AxisOptions>>, xaxis
         val theme = if (darkMode) "dark" else "light"
         val fontFamily = "Inter, sans-serif"
 
-        val options: ChartOptions = jso {
-            chart = jso {
+        val options: ChartOptions = unsafeJso {
+            chart = unsafeJso {
                 height = 420
                 type = "area"
                 this.fontFamily = fontFamily
                 foreColor = labelColor
-                toolBar = jso {
+                toolBar = unsafeJso {
                     show = true
                 }
             }
-            fill = jso {
+            fill = unsafeJso {
                 type = "gradient"
-                gradient = jso {
+                gradient = unsafeJso {
                     enabled = true
                     this.opacityFrom = opacityFrom
                     this.opacityTo = opacityTo
                 }
             }
-            dataLabels = jso {
+            dataLabels = unsafeJso {
                 enabled = false
             }
-            tooltip = jso {
-                style = jso {
+            tooltip = unsafeJso {
+                style = unsafeJso {
                     this.fontFamily = fontFamily
                     fontSize = "14px"
                 }
                 this.theme = theme
             }
-            grid = jso {
+            grid = unsafeJso {
                 show = true
                 this.borderColor = borderColor
                 strokeDashArray = 1
-                padding = jso {
+                padding = unsafeJso {
                     left = 35
                     bottom = 15
                 }
             }
             this.series = series.map { it.first }.toTypedArray()
-            markers = jso {
+            markers = unsafeJso {
                 size = 5
                 strokeColors = "#ffffff"
-                hover = jso {
+                hover = unsafeJso {
                     size = "2"
                     sizeOffset = 3
                 }
             }
-            xaxis = jso {
+            xaxis = unsafeJso {
                 categories = xaxisLabels
-                labels = jso {
-                    style = jso {
+                labels = unsafeJso {
+                    style = unsafeJso {
                         colors = arrayOf(labelColor)
                         fontSize = "14px"
                         fontWeight = 500
                     }
                 }
-                axisBorder = jso { color = borderColor }
-                axisTicks = jso { color = borderColor }
-                crossHairs = jso {
+                axisBorder = unsafeJso { color = borderColor }
+                axisTicks = unsafeJso { color = borderColor }
+                crossHairs = unsafeJso {
                     show = true
                     position = "back"
-                    stroke = jso {
+                    stroke = unsafeJso {
                         color = borderColor
                         width = 1
                         dashArray = 10
@@ -260,8 +264,8 @@ class AreaChart(element: Element, series: List<Pair<Series, AxisOptions>>, xaxis
                 }
             }
             yaxis = if (series.map { it.second }.toSet().size == 1) {
-                arrayOf(jso {
-                    labels = jso {
+                arrayOf(unsafeJso {
+                    labels = unsafeJso {
                         colors = arrayOf(labelColor)
                         fontSize = "14px"
                         fontWeight = 500
@@ -271,9 +275,9 @@ class AreaChart(element: Element, series: List<Pair<Series, AxisOptions>>, xaxis
                 })
             } else {
                 series.map {
-                    jso<YAxis> {
+                    unsafeJso<YAxis> {
                         opposite = (it.second.axis == Axis.RIGHT)
-                        title = jso {
+                        title = unsafeJso {
                             text = it.second.axis.toString()
                         }
                         min = it.second.min
@@ -281,22 +285,22 @@ class AreaChart(element: Element, series: List<Pair<Series, AxisOptions>>, xaxis
                     }
                 }.toTypedArray()
             }
-            legend = jso {
+            legend = unsafeJso {
                 fontSize = "14px"
                 fontWeight = 500
                 this.fontFamily = fontFamily
-                labels = jso {
+                labels = unsafeJso {
                     colors = arrayOf(labelColor)
                 }
-                itemMargin = jso {
+                itemMargin = unsafeJso {
                     horizontal = 10
                 }
             }
-            responsive = arrayOf(jso {
+            responsive = arrayOf(unsafeJso {
                 breakpoint = 1024
-                options = jso {
-                    xaxis = jso {
-                        labels = jso {
+                options = unsafeJso {
+                    xaxis = unsafeJso {
+                        labels = unsafeJso {
                             show = false
                         }
                     }

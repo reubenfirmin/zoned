@@ -1,99 +1,66 @@
 package zoned.framework.dom
 
 import kotlinx.html.CommonAttributeGroupFacade
-import kotlinx.html.id
-import web.dom.document
+import kotlinx.html.Tag
+import kotlinx.html.js.*
+import web.dnd.DragEvent
 import web.events.Event
-import web.events.EventType
-import web.events.addEventListener
 import web.html.HTMLElement
-import web.uievents.DragEvent
-import web.uievents.InputEvent
-import web.uievents.KeyboardEvent
-import web.uievents.MouseEvent
+import web.input.InputEvent
+import web.keyboard.KeyboardEvent
+import web.mouse.MouseEvent
 import zoned.framework.interop.onDestroy as elementOnDestroy
-import kotlin.random.Random
 
-private fun generateRandomString(length: Int = 7): String {
-    val charPool : List<Char> = ('a'..'z') + ('0'..'9')
-    return (1..length)
-        .map { Random.nextInt(0, charPool.size) }
-        .map(charPool::get)
-        .joinToString("")
-}
-
-private fun CommonAttributeGroupFacade.ensureId(): String {
-
-    try {
-        // just accessing id if it's unset currently throws an exception
-        if (id.isBlank()) {
-            console.log("id was blank; generating")
-            // just in case kotlinx.html fixes ^ in future
-            throw RuntimeException("id was blank")
-        }
-    } catch (e: Exception) {
-        id = "element-${generateRandomString()}"
-    }
-    return id
-}
-
-private inline fun <reified E : Event> CommonAttributeGroupFacade.attachEvent(
-    type: EventType<E>,
-    noinline handler: (E) -> Unit
-) {
-    val id = ensureId()
-    DomBehavior.queue(id) { element ->
-        element.addEventListener(type, handler)
-    }
-}
+/**
+ * DSL event handlers - delegate to kotlinx.html's typed events.
+ * These use consumer.onTagEvent() which immediately attaches listeners.
+ */
 
 // Standard event listeners
-// XXX these all require that id is defined on the element first; the logic above that tries to generate an id isn't working
-fun CommonAttributeGroupFacade.onClick(handler: (MouseEvent) -> Unit) = attachEvent<MouseEvent>(EventType("click"), handler)
-fun CommonAttributeGroupFacade.onMouseEnter(handler: (MouseEvent) -> Unit) = attachEvent<MouseEvent>(EventType("mouseenter"), handler)
-fun CommonAttributeGroupFacade.onMouseLeave(handler: (MouseEvent) -> Unit) = attachEvent<MouseEvent>(EventType("mouseleave"), handler)
-fun CommonAttributeGroupFacade.onContextMenu(handler: (MouseEvent) -> Unit) = attachEvent<MouseEvent>(EventType("contextmenu"), handler)
-fun CommonAttributeGroupFacade.onSubmit(handler: (Event) -> Unit) = attachEvent<Event>(EventType("submit"), handler)
-fun CommonAttributeGroupFacade.onChange(handler: (Event) -> Unit) = attachEvent<Event>(EventType("change"), handler)
-fun CommonAttributeGroupFacade.onKeyUp(handler: (KeyboardEvent) -> Unit) = attachEvent<KeyboardEvent>(EventType("keyup"), handler)
-fun CommonAttributeGroupFacade.onKeyDown(handler: (KeyboardEvent) -> Unit) = attachEvent<KeyboardEvent>(EventType("keydown"), handler)
-fun CommonAttributeGroupFacade.onLoad(handler: (Event) -> Unit) = attachEvent<Event>(EventType("load"), handler)
-fun CommonAttributeGroupFacade.onError(handler: (Event) -> Unit) = attachEvent<Event>(EventType("error"), handler)
-fun CommonAttributeGroupFacade.onInput(handler: (InputEvent) -> Unit) = attachEvent<InputEvent>(EventType("input"), handler)
-fun CommonAttributeGroupFacade.onScroll(handler: (InputEvent) -> Unit) = attachEvent<InputEvent>(EventType("scroll"), handler)
+fun CommonAttributeGroupFacade.onClick(handler: (MouseEvent) -> Unit) { onClickFunction = handler }
+fun CommonAttributeGroupFacade.onMouseEnter(handler: (MouseEvent) -> Unit) { onMouseEnterFunction = handler }
+fun CommonAttributeGroupFacade.onMouseLeave(handler: (MouseEvent) -> Unit) { onMouseLeaveFunction = handler }
+fun CommonAttributeGroupFacade.onContextMenu(handler: (MouseEvent) -> Unit) { onContextMenuFunction = handler }
+fun CommonAttributeGroupFacade.onSubmit(handler: (Event) -> Unit) { onSubmitFunction = handler }
+fun CommonAttributeGroupFacade.onChange(handler: (Event) -> Unit) { onChangeFunction = handler }
+fun CommonAttributeGroupFacade.onKeyUp(handler: (KeyboardEvent) -> Unit) { onKeyUpFunction = handler }
+fun CommonAttributeGroupFacade.onKeyDown(handler: (KeyboardEvent) -> Unit) { onKeyDownFunction = handler }
+fun CommonAttributeGroupFacade.onLoad(handler: (Event) -> Unit) { onLoadFunction = handler }
+fun CommonAttributeGroupFacade.onError(handler: (Event) -> Unit) { onErrorFunction = handler }
+fun CommonAttributeGroupFacade.onInput(handler: (InputEvent) -> Unit) { onInputFunction = handler }
+fun CommonAttributeGroupFacade.onScroll(handler: (Event) -> Unit) { onScrollFunction = handler }
 
 // Drag and drop events
-fun CommonAttributeGroupFacade.onDragStart(handler: (DragEvent) -> Unit) = attachEvent<DragEvent>(EventType("dragstart"), handler)
-fun CommonAttributeGroupFacade.onDragEnd(handler: (DragEvent) -> Unit) = attachEvent<DragEvent>(EventType("dragend"), handler)
-fun CommonAttributeGroupFacade.onDragOver(handler: (DragEvent) -> Unit) = attachEvent<DragEvent>(EventType("dragover"), handler)
-fun CommonAttributeGroupFacade.onDragEnter(handler: (DragEvent) -> Unit) = attachEvent<DragEvent>(EventType("dragenter"), handler)
-fun CommonAttributeGroupFacade.onDragLeave(handler: (DragEvent) -> Unit) = attachEvent<DragEvent>(EventType("dragleave"), handler)
-fun CommonAttributeGroupFacade.onDrop(handler: (DragEvent) -> Unit) = attachEvent<DragEvent>(EventType("drop"), handler)
+fun CommonAttributeGroupFacade.onDragStart(handler: (DragEvent) -> Unit) { onDragStartFunction = handler }
+fun CommonAttributeGroupFacade.onDragEnd(handler: (DragEvent) -> Unit) { onDragEndFunction = handler }
+fun CommonAttributeGroupFacade.onDragOver(handler: (DragEvent) -> Unit) { onDragOverFunction = handler }
+fun CommonAttributeGroupFacade.onDragEnter(handler: (DragEvent) -> Unit) { onDragEnterFunction = handler }
+fun CommonAttributeGroupFacade.onDragLeave(handler: (DragEvent) -> Unit) { onDragLeaveFunction = handler }
+fun CommonAttributeGroupFacade.onDrop(handler: (DragEvent) -> Unit) { onDropFunction = handler }
 
 
 /**
- * Executed when element becomes visible
+ * Executed when the current tag ends (after children are built).
+ * The handler runs synchronously during DSL execution, before the element
+ * is appended to its parent.
+ *
+ * @throws IllegalStateException if called outside ElementTrackingConsumer context
  */
-fun CommonAttributeGroupFacade.onDisplay(handler: () -> Unit) {
-    val id = ensureId()
-    DomBehavior.queueDisplay(id, handler)
-}
-
-/**
- * Executed when element is added to dom
- */
-fun CommonAttributeGroupFacade.onMount(handler: () -> Unit) {
-    val id = ensureId()
-    DomBehavior.queueMount(id, handler)
+fun Tag.onMount(handler: () -> Unit) {
+    val tracker = getCurrentTracker()
+        ?: error("onMount() requires ElementTrackingConsumer context")
+    tracker.queueMountCallback(handler)
 }
 
 /**
  * Executed when element is removed from dom.
  * Useful for cleanup (timers, event listeners, etc.)
+ *
+ * @throws IllegalStateException if called outside ElementTrackingConsumer context
  */
-fun CommonAttributeGroupFacade.onDestroy(handler: () -> Unit) {
-    val id = ensureId()
-    DomBehavior.queueMount(id) {
-        (document.getElementById(id) as? HTMLElement)?.elementOnDestroy(handler)
-    }
+fun Tag.onDestroy(handler: () -> Unit) {
+    val tracker = getCurrentTracker()
+        ?: error("onDestroy() requires ElementTrackingConsumer context")
+    val element = tracker.currentElement() as HTMLElement
+    element.elementOnDestroy(handler)
 }

@@ -104,7 +104,7 @@ open class EnhancementCodeGenerator : DefaultTask() {
 
             if (enh.clientBuildsContent) {
                 // Config-only DSL: client builds all UI, no server content needed
-                // configure must be LAST for trailing lambda syntax to work
+                // Single trailing lambda for configure
                 """
                 |/**
                 | * Type-safe DSL for ${enh.name} enhancement.
@@ -129,7 +129,7 @@ open class EnhancementCodeGenerator : DefaultTask() {
                 """.trimMargin()
             } else {
                 // Wrapper DSL: server provides content that client wraps
-                // content must be LAST for trailing lambda syntax to work
+                // Two overloads: one with classes, one without (for clean DSL)
                 """
                 |/**
                 | * Type-safe DSL for ${enh.name} enhancement.
@@ -143,8 +143,8 @@ open class EnhancementCodeGenerator : DefaultTask() {
                 | * ```
                 | */
                 |fun FlowContent.$functionName(
-                |    classes: String = "",
-                |    configure: ${enh.configClass}.() -> Unit = {},
+                |    classes: String,
+                |    configure: ${enh.configClass}.() -> Unit,
                 |    content: FlowContent.() -> Unit = {}
                 |) {
                 |    div(classes) {
@@ -153,6 +153,14 @@ open class EnhancementCodeGenerator : DefaultTask() {
                 |        content()
                 |    }
                 |}
+                |
+                |/**
+                | * Type-safe DSL for ${enh.name} enhancement (without classes).
+                | */
+                |fun FlowContent.$functionName(
+                |    configure: ${enh.configClass}.() -> Unit,
+                |    content: FlowContent.() -> Unit = {}
+                |) = $functionName("", configure, content)
                 """.trimMargin()
             }
         }

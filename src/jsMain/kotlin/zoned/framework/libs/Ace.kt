@@ -1,7 +1,7 @@
 package zoned.framework.libs
 
-import js.objects.jso
-import org.w3c.dom.events.KeyboardEvent
+import js.objects.unsafeJso
+import web.keyboard.KeyboardEvent
 
 @JsModule("ace-builds/src-noconflict/ace")
 @JsNonModule
@@ -93,20 +93,20 @@ external interface AceCommandObject {
 
 // Helper functions for ergonomic object creation
 
-fun aceRange(startRow: Int, startCol: Int, endRow: Int, endCol: Int): AceRange = jso {
-    start = jso {
+fun aceRange(startRow: Int, startCol: Int, endRow: Int, endCol: Int): AceRange = unsafeJso {
+    start = unsafeJso {
         row = startRow
         column = startCol
     }
-    end = jso {
+    end = unsafeJso {
         row = endRow
         column = endCol
     }
 }
 
-fun aceCommand(name: String, winKey: String, macKey: String, exec: (AceEditor) -> Boolean): AceCommand = jso {
+fun aceCommand(name: String, winKey: String, macKey: String, exec: (AceEditor) -> Boolean): AceCommand = unsafeJso {
     this.name = name
-    bindKey = jso {
+    bindKey = unsafeJso {
         win = winKey
         mac = macKey
     }

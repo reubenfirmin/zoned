@@ -5,7 +5,7 @@ object Versions {
     const val flyway = "9.20.1"
     const val javalin = "6.1.3"
     const val hikari = "2.6.1"
-    const val kotlinWrappers = "1.0.0-pre.819"
+    const val kotlinWrappers = "2025.11.12"
     const val gradleNodePlugin = "7.1.0"
     const val sqlite = "3.47.2.0"
     const val dotenv = "6.4.1"

@@ -15,7 +15,7 @@ import zoned.framework.dom.Ref
 import zoned.framework.dom.insertChildren
 import zoned.framework.dom.onMouseEnter
 import zoned.framework.dom.onMouseLeave
-import web.uievents.MouseEvent
+import web.mouse.MouseEvent
 import zoned.framework.dom.ref
 import zoned.framework.interop.css
 
@@ -94,7 +94,7 @@ private object TooltipManager {
     fun show(trigger: HTMLElement, text: String, position: String) {
         val tip = getOrCreateTooltip()
         tip.textContent = text
-        tip.css { opacity = 1 }
+        tip.style.opacity = "1"
 
         // Position after making visible so we can measure
         window.requestAnimationFrame {
@@ -103,7 +103,7 @@ private object TooltipManager {
     }
 
     fun hide() {
-        tooltipElement?.css { opacity = 0 }
+        tooltipElement?.style?.opacity = "0"
     }
 
     private fun positionTooltip(tip: HTMLElement, trigger: HTMLElement, position: String) {
@@ -131,9 +131,7 @@ private object TooltipManager {
             )
         }
 
-        tip.css {
-            left = x.px
-            top = y.px
-        }
+        tip.style.left = "${x}px"
+        tip.style.top = "${y}px"
     }
 }

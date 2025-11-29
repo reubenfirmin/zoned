@@ -1,6 +1,6 @@
 package zoned.framework.libs
 
-import js.objects.jso
+import js.objects.unsafeJso
 import web.dom.Element
 
 /**
@@ -45,7 +45,7 @@ external interface EmbedPDFInstance {
  * Helper function to create a PDF viewer with common defaults.
  */
 fun createPdfViewer(container: Element, pdfUrl: String): EmbedPDFInstance {
-    return EmbedPDF.init(jso {
+    return EmbedPDF.init(unsafeJso {
         type = "container"
         target = container
         src = pdfUrl

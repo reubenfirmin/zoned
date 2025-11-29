@@ -1,12 +1,10 @@
 package zoned.framework.dom
 
-import kotlinx.html.CommonAttributeGroupFacade
-import kotlinx.html.id
+import kotlinx.html.Tag
 import web.html.HTMLElement
-import kotlin.random.Random
 
 /**
- * A reference to an HTMLElement that will be populated during DOM flush.
+ * A reference to an HTMLElement that is populated synchronously during DSL execution.
  * Use this instead of getElementById to capture elements created via DSL.
  *
  * Usage:
@@ -18,15 +16,14 @@ import kotlin.random.Random
  *     +"Click me"
  * }
  *
- * // In an event handler (runs after flush):
+ * // In an event handler or onMount:
  * onClick {
  *     buttonRef.element.disabled = true
  * }
  * ```
  *
- * Note: Accessing `element` before DOM flush throws an error.
- * Event handlers registered via DSL (onClick, onInput, etc.) are safe
- * because they also run after flush.
+ * Note: The ref is bound synchronously when ref() is called, so it's
+ * immediately available in subsequent code within the same DSL block.
  */
 class Ref<T : HTMLElement> {
     private var _element: T? = null
@@ -54,42 +51,26 @@ class Ref<T : HTMLElement> {
     }
 }
 
-private fun generateRefId(): String {
-    val charPool: List<Char> = ('a'..'z') + ('0'..'9')
-    return "ref-" + (1..7)
-        .map { Random.nextInt(0, charPool.size) }
-        .map(charPool::get)
-        .joinToString("")
-}
-
 /**
  * Capture a reference to this element.
- * The ref will be populated after the element is added to the DOM.
+ * The ref is populated synchronously during DSL execution.
  *
  * Usage:
  * ```
  * val myRef = Ref<HTMLDivElement>()
  * div {
  *     ref(myRef)
- *     // ...
+ *     // myRef.element is now available
  * }
- * // Later in event handlers:
- * myRef.element.classList.add("active")
  * ```
+ *
+ * @throws IllegalStateException if called outside ElementTrackingConsumer context
  */
-fun <T : HTMLElement> CommonAttributeGroupFacade.ref(ref: Ref<T>) {
-    // Ensure the element has an ID so DomBehavior can find it
-    val elementId = try {
-        if (id.isBlank()) throw RuntimeException("blank")
-        id
-    } catch (e: Exception) {
-        val newId = generateRefId()
-        id = newId
-        newId
-    }
-
-    DomBehavior.queue(elementId) { element ->
-        @Suppress("UNCHECKED_CAST")
-        ref.set(element as T)
-    }
+fun <T : HTMLElement> Tag.ref(ref: Ref<T>) {
+    val tracker = getCurrentTracker()
+        ?: error("ref() requires ElementTrackingConsumer context")
+    val element = tracker.currentElement()
+        ?: error("ref() called outside element context")
+    @Suppress("UNCHECKED_CAST")
+    ref.set(element as T)
 }

@@ -1,9 +1,9 @@
 package zoned.framework.interop
 
 import web.dom.document
-import web.dom.observers.MutationObserver
-import web.dom.observers.MutationObserverInit
 import web.html.HTMLElement
+import web.mutation.MutationObserver
+import web.mutation.MutationObserverInit
 
 private val destroyCallbacks = mutableMapOf<HTMLElement, MutableList<() -> Unit>>()
 private val observers = mutableMapOf<HTMLElement, MutationObserver>()
