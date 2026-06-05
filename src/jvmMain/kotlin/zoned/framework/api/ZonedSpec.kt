@@ -16,7 +16,7 @@ data class StaticFileEntry(
 
 class ZonedSpec internal constructor() {
 
-    private val log = LoggerFactory.getLogger("zoned.Zoned")
+    private val log = LoggerFactory.getLogger(ZonedSpec::class.java)
     private val accessLogger = LoggerFactory.getLogger("javalin.access")
 
     private var authHandler: Handler? = null
@@ -26,7 +26,6 @@ class ZonedSpec internal constructor() {
     private var accessLogEnabled = true
     private var exceptionHandler: ((Exception, Context) -> Unit)? = null
     private val errorHandlers = mutableMapOf<Int, Handler>()
-    private var notFoundHandler: Handler? = null
     private var rawConfig: ((JavalinConfig) -> Unit)? = null
 
     fun auth(handler: Handler) { authHandler = handler }
@@ -43,7 +42,7 @@ class ZonedSpec internal constructor() {
     fun accessLog(enabled: Boolean) { accessLogEnabled = enabled }
     fun onException(handler: (Exception, Context) -> Unit) { exceptionHandler = handler }
     fun onError(code: Int, handler: Handler) { errorHandlers[code] = handler }
-    fun onNotFound(handler: Handler) { notFoundHandler = handler }
+    fun onNotFound(handler: Handler) { errorHandlers[404] = handler }
     fun javalin(block: (JavalinConfig) -> Unit) { rawConfig = block }
 
     internal fun applyTo(config: JavalinConfig) {
@@ -85,16 +84,16 @@ class ZonedSpec internal constructor() {
                 }
             }
 
-            val notFound = notFoundHandler
-            if (notFound != null) {
-                error(404, notFound)
+            val error404 = errorHandlers[404]
+            if (error404 != null) {
+                error(404, error404)
             } else {
                 error(404) { ctx ->
                     ctx.result("No route matched for ${ctx.method()} ${ctx.path()}")
                 }
             }
 
-            errorHandlers.filterKeys { it != 500 }.forEach { (code, handler) -> error(code, handler) }
+            errorHandlers.filterKeys { it != 500 && it != 404 }.forEach { (code, handler) -> error(code, handler) }
 
             if (accessLogEnabled) {
                 after { ctx ->
