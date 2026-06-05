@@ -33,7 +33,7 @@ kotlin {
             dependencies {
                 api(kotlin("stdlib"))
                 api("org.jetbrains.kotlinx:kotlinx-html:0.12.0-web")
-                api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
+                api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
             }
         }
 
@@ -47,11 +47,11 @@ kotlin {
                 api("org.jooq:jooq:${Versions.jooq}")
                 api("org.jooq:jooq-kotlin:${Versions.jooq}")
                 api("org.flywaydb:flyway-core:${Versions.flyway}")
-                api("net.bytebuddy:byte-buddy:1.14.5")
-                api("com.auth0:java-jwt:4.4.0")
+                api("net.bytebuddy:byte-buddy:1.18.10")
+                api("com.auth0:java-jwt:4.5.2")
                 api("com.zaxxer:HikariCP:${Versions.hikari}")
-                api("ch.qos.logback:logback-classic:1.4.12")
-                api("ch.qos.logback:logback-core:1.4.14")
+                api("ch.qos.logback:logback-classic:1.5.34")
+                api("ch.qos.logback:logback-core:1.5.34")
                 api("at.favre.lib:bcrypt:0.10.2")
                 api("com.fasterxml.jackson.core:jackson-core:${Versions.jackson}")
                 api("com.fasterxml.jackson.core:jackson-databind:${Versions.jackson}")
@@ -59,10 +59,10 @@ kotlin {
                 api("com.fasterxml.jackson.module:jackson-module-kotlin:${Versions.jackson}")
                 api("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${Versions.jackson}")
                 api("io.github.cdimascio:dotenv-kotlin:${Versions.dotenv}")
-                api("com.squareup.okhttp3:okhttp:4.12.0")
-                api("com.google.guava:guava:33.0.0-jre")
+                api("com.squareup.okhttp3:okhttp:5.3.2")
+                api("com.google.guava:guava:33.6.0-jre")
                 api("dev.misfitlabs.kotlinguice4:kotlin-guice:3.0.0")
-                api("com.postmarkapp:postmark:1.11.1")
+                api("com.postmarkapp:postmark:1.13.0")
                 api("org.jooq:jooq-meta:${Versions.jooq}")
                 api("org.jooq:jooq-codegen:${Versions.jooq}")
             }
@@ -78,35 +78,37 @@ kotlin {
                 api("org.jetbrains.kotlin-wrappers:kotlin-css")
                 api("org.jetbrains.kotlinx:kotlinx-html-js:0.12.0-web")
 
-                api(npm("tailwindcss", "4.1.12"))
-                api(npm("@tailwindcss/cli", "4.1.12"))
-                api(npm("sortablejs", "1.15.1"))
-                api(npm("flowbite", "3.1.2"))
-                api(npm("htmx.org", "2.0.4"))
-                api(npm("ace-builds", "1.30.0"))
+                api(npm("tailwindcss", "4.3.0"))
+                api(npm("@tailwindcss/cli", "4.3.0"))
+                api(npm("sortablejs", "1.15.7"))
+                api(npm("flowbite", "4.0.2"))
+                api(npm("htmx.org", "2.0.10"))
+                api(npm("ace-builds", "1.44.0"))
                 api(npm("file-loader", "6.2.0"))
                 api(npm("path-browserify", "1.0.1"))
-                api(npm("crypto-browserify", "3.12.0"))
+                api(npm("crypto-browserify", "3.12.1"))
                 api(npm("stream-browserify", "3.0.0"))
                 api(npm("buffer", "6.0.3"))
                 api(npm("dragula", "3.7.3"))
                 api(npm("file-saver", "2.0.5"))
-                api(npm("browser-fs-access", "0.31.1"))
-                api(npm("html-to-image", "1.11.11"))
+                api(npm("browser-fs-access", "0.38.0"))
+                api(npm("html-to-image", "1.11.13"))
                 api(npm("microlight", "0.0.7"))
                 api(npm("leaflet", "1.9.4"))
-                api(npm("nomnoml", "1.6.2"))
-                api(npm("svgmap", "^2.7.1"))
-                api(npm("@popperjs/core", "^2.10.2"))
-                api(npm("apexcharts", "^3.48.0"))
-                api(npm("prismjs", "^1.25.0"))
+                api(npm("nomnoml", "1.7.0"))
+                api(npm("svgmap", "2.20.1"))
+                api(npm("@popperjs/core", "2.11.8"))
+                api(npm("apexcharts", "5.14.0"))
+                api(npm("prismjs", "1.30.0"))
+                api(npm("tributejs", "5.1.3"))
             }
         }
 
         val jvmTest by getting {
             dependencies {
                 implementation(kotlin("test"))
-                implementation("org.jsoup:jsoup:1.17.2")
+                implementation("org.jsoup:jsoup:1.22.2")
+                implementation("com.squareup.okhttp3:okhttp:5.3.2")
             }
         }
     }
