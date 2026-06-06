@@ -176,14 +176,49 @@ val buttonRef = Ref<HTMLButtonElement>()
 
 div {
     button {
-        ref(buttonRef)  // Captures reference when element is created
+        ref(buttonRef)  // Captures reference during the DSL pass
         +"Click me"
+        onMount {
+            // Access the element ONLY after it is in the DOM (see "Rendering Cycle" below)
+            buttonRef.element.disabled = true
+        }
     }
 }
-
-// Later, access the element:
-buttonRef.element.disabled = true
 ```
+
+Do **not** read `ref.element` synchronously after the DSL block — at that point the
+element may not be in the live document yet. Use it inside `onMount { }`.
+
+## Rendering Cycle: the DSL is pre-DOM, `onMount` is post-DOM
+
+When you build client UI with the DSL (`HTMLElement.appendTo().div { }`, `addToBody { }`,
+any `ElementTrackingConsumer`), the DSL pass runs **before** the element is attached to the
+live document. The element is only appended (and measurable) in `finalize()`, which then
+fires the queued `onMount` callbacks. Two hard rules follow:
+
+1. **Bind events and do DOM work in `onMount`, on the real element** — not via the
+   `on*Function` DSL setters (which are pre-DOM and don't bind a live listener), and not by
+   reading `ref.element` synchronously after the block. Capture a `Ref` in the DSL, then in
+   `onMount` use `ref.element.addEventListener(...)`, `getBoundingClientRect()`, positioning,
+   focus, measuring, etc. (`onMount` runs after `appendChild`, so the element is live.)
+
+2. **Build children on the `FlowContent`/`Tag` receiver, never as `TagConsumer` extensions.**
+   A `TagConsumer<HTMLElement>`-level `div { }` runs `visitAndFinalize`, which appends the
+   element to the consumer's **root** (e.g. `<body>`) as a *sibling* and pops the tracker —
+   breaking `ref`/`onMount` nesting and scattering content. To add children, call builders on
+   the enclosing element's block receiver:
+
+   ```kotlin
+   // WRONG — appends siblings to <body>, pops the tracker (onMount/ref break)
+   fun TagConsumer<HTMLElement>.renderItems(items: List<X>) { items.forEach { div { ... } } }
+   addToBody { div { renderItems(items) } }
+
+   // CORRECT — items are children of the div
+   fun FlowContent.renderItems(items: List<X>) { items.forEach { div { ... } } }
+   addToBody { div { renderItems(items) } }
+   ```
+
+A floating element (menu/tooltip/modal) is therefore: one container built with `addToBody { div { ref(r); /* children on FlowContent */; onMount { position + addEventListener(...) } } }`, removed on dismiss.
 
 ## DOM Helpers
 
@@ -207,11 +242,19 @@ fun TagConsumer<HTMLElement>.initFooEnhancement(config: FooConfig, children: Lis
 ```
 
 ### Event Handlers
+
+The kotlinx-html DSL is **pre-DOM** (see "Rendering Cycle" below): the `on*Function`
+DSL setters (`onClick { }`, `onContextMenu { }`, …) do **not** reliably produce a live
+listener on the element that ends up in the document. Bind listeners in `onMount { }` on
+the real element instead:
+
 ```kotlin
+val rootRef = Ref<HTMLElement>()
 div {
-    onMouseEnter { event -> /* handle */ }
-    onMouseLeave { event -> /* handle */ }
-    onClick { event -> /* handle */ }
+    ref(rootRef)
+    onMount {
+        rootRef.element.addEventListener(EventType("click")) { e: MouseEvent -> /* handle */ }
+    }
 }
 ```
 
