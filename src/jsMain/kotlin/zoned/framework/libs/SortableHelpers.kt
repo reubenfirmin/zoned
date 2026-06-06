@@ -13,6 +13,14 @@ data class SortableConfig(
     val ghostClass: String = "sortable-ghost",
     val chosenClass: String = "sortable-chosen",
     val dragClass: String = "sortable-drag",
+    // Defaults match Sortable's own defaults (no behaviour change for existing callers).
+    // forceFallback + fallbackOnBody use Sortable's managed mirror (lifted to <body>) instead
+    // of the native HTML5 drag image — smoother across nested scroll/grid containers.
+    // emptyInsertThreshold is the px distance for inserting into a (sparse/empty) container.
+    val forceFallback: Boolean = false,
+    val fallbackOnBody: Boolean = false,
+    val fallbackTolerance: Int = 0,
+    val emptyInsertThreshold: Int = 5,
     val onEnd: (SortableDropEvent) -> Unit
 )
 
@@ -40,6 +48,10 @@ fun makeSortable(config: SortableConfig) {
         ghostClass = config.ghostClass
         chosenClass = config.chosenClass
         dragClass = config.dragClass
+        forceFallback = config.forceFallback
+        fallbackOnBody = config.fallbackOnBody
+        fallbackTolerance = config.fallbackTolerance
+        emptyInsertThreshold = config.emptyInsertThreshold
         onEnd = { event ->
             config.onEnd(SortableDropEvent(
                 itemId = event.item.id,
