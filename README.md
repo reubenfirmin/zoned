@@ -69,12 +69,11 @@ for building client-side UI.
 
 Zoned renders all of its HTML — on both the server and the client — with
 [kotlinx.html](https://github.com/Kotlin/kotlinx.html). Rather than the upstream release, it depends
-on a **fork** that's required to build Zoned:
+on a **fork**, consumed from [JitPack](https://jitpack.io):
 
 - **Repository:** <https://github.com/reubenfirmin/kotlinx-html-new>
-- **Coordinates:** `org.jetbrains.kotlinx:kotlinx-html:0.12.0-web` — it keeps the upstream
-  group/artifact and distinguishes itself with the `-web` version suffix, so it transparently
-  replaces stock kotlinx.html on the classpath.
+- **Coordinates:** `com.github.reubenfirmin:kotlinx-html-new:0.12.1-web` (the `-web` version suffix
+  marks the fork's lineage). Requires `maven("https://jitpack.io")` in your repositories.
 - **License:** Apache-2.0 (inherited from upstream).
 
 ### Why it exists
@@ -94,30 +93,19 @@ kotlinx.html offers for Kotlin/JS. The fork adds:
   as API dependencies, built against **Kotlin 2.4.0** and **kotlin-wrappers 2026.6.2** to match the
   rest of the Zoned stack.
 
-You don't depend on the fork directly in your app — Zoned pulls it in transitively. You only need to
-have published it to Maven Local first (step 1 of [Getting started](#getting-started)).
+You don't depend on the fork directly in your app — Zoned pulls it in transitively from JitPack. Your
+app just needs `maven("https://jitpack.io")` in its repositories (see [Getting started](#getting-started)).
 
 ---
 
 ## Getting started
 
 Zoned is currently distributed as `1.0-SNAPSHOT` via your **local Maven repository** — it is not yet
-published to a public repository. So the first steps for any app are to build and publish Zoned (and
-its kotlinx.html fork) locally.
+published to a public repository. So the first step for any app is to build and publish Zoned locally.
+(Its kotlinx.html fork comes from [JitPack](#the-kotlinxhtml-fork), so you no longer build that
+yourself — you just need the JitPack repo declared, shown below.)
 
-### 1. Publish the kotlinx.html fork to Maven Local
-
-Zoned depends on a fork of kotlinx.html, published as `org.jetbrains.kotlinx:kotlinx-html:0.12.0-web`.
-It isn't on Maven Central, so build it first (see [The kotlinx.html fork](#the-kotlinxhtml-fork)
-below for what it changes and why):
-
-```bash
-git clone https://github.com/reubenfirmin/kotlinx-html-new
-cd kotlinx-html-new
-./gradlew publishToMavenLocal
-```
-
-### 2. Publish Zoned to Maven Local
+### 1. Publish Zoned to Maven Local
 
 ```bash
 git clone <this-repo> zoned
@@ -129,7 +117,7 @@ This publishes both the library (per-target artifacts `io.4rc:zoned-jvm` and `io
 the Gradle plugin (`io.4rc.zoned.plugin`) to `~/.m2`. Re-run it whenever you change framework code so
 dependent apps pick up the update.
 
-### 3. Point your app at Maven Local
+### 2. Point your app at Maven Local + JitPack
 
 In your app's `settings.gradle.kts`, make sure `mavenLocal()` is available to plugins:
 
@@ -143,12 +131,14 @@ pluginManagement {
 }
 ```
 
-And in `build.gradle.kts` repositories:
+And in `build.gradle.kts` repositories — include **JitPack**, so Zoned's transitive kotlinx.html
+fork resolves:
 
 ```kotlin
 repositories {
     mavenLocal()
     mavenCentral()
+    maven("https://jitpack.io")
 }
 ```
 

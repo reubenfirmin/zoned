@@ -32,7 +32,6 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 api(kotlin("stdlib"))
-                api("org.jetbrains.kotlinx:kotlinx-html:0.12.0-web")
                 api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
             }
         }
@@ -41,6 +40,7 @@ kotlin {
             kotlin.srcDir("${project.buildDir}/generated/kotlin")
 
             dependencies {
+                api("com.github.reubenfirmin.kotlinx-html-new:kotlinx-html-jvm:0.12.1-web")
                 api("org.postgresql:postgresql:${Versions.postgres}")
                                                     api("org.xerial:sqlite-jdbc:${Versions.sqlite}")
                 api("io.javalin:javalin:${Versions.javalin}")
@@ -77,7 +77,7 @@ kotlin {
                 api("org.jetbrains.kotlin-wrappers:kotlin-js")
                 api("org.jetbrains.kotlin-wrappers:kotlin-browser")
                 api("org.jetbrains.kotlin-wrappers:kotlin-css")
-                api("org.jetbrains.kotlinx:kotlinx-html-js:0.12.0-web")
+                api("com.github.reubenfirmin.kotlinx-html-new:kotlinx-html-js:0.12.1-web")
 
                 api(npm("tailwindcss", "4.3.0"))
                 api(npm("@tailwindcss/cli", "4.3.0"))

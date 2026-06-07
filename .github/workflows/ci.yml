@@ -31,25 +31,9 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # Zoned depends on a fork of kotlinx.html published as
-      # org.jetbrains.kotlinx:kotlinx-html:0.12.0-web, which is not on Maven
-      # Central. Build & publish the JVM/JS/metadata variants to Maven Local.
-      # (The fork also defines Apple targets, which can't build on Linux — so we
-      # publish only the variants zoned actually consumes.)
-      - name: Checkout kotlinx.html fork
-        uses: actions/checkout@v4
-        with:
-          repository: reubenfirmin/kotlinx-html-new
-          path: kotlinx-html-fork
-
-      - name: Publish kotlinx.html fork to Maven Local
-        working-directory: kotlinx-html-fork
-        run: |
-          chmod +x ./gradlew
-          ./gradlew --no-daemon \
-            publishKotlinMultiplatformPublicationToMavenLocal \
-            publishJvmPublicationToMavenLocal \
-            publishJsPublicationToMavenLocal
+      # Zoned's kotlinx.html fork (com.github.reubenfirmin:kotlinx-html-new) is
+      # resolved from JitPack (declared in settings.gradle.kts) — no need to build
+      # it here.
 
       # The root build applies its own Gradle plugin (io.4rc.zoned.plugin), so it
       # can't configure until that plugin exists in a repository. Bootstrap it by
