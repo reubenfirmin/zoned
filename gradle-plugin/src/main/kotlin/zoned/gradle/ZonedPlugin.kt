@@ -29,6 +29,15 @@ class ZonedPlugin : Plugin<Project> {
         // Register watch script generator
         val generateWatchScript = project.tasks.register("generate-watch-script") {
             it.doLast {
+                // Frontend-only (JS) projects have no jvm target, so there is no compileKotlinJvm
+                // or `run` task. In that case the watch loop drives the webpack dev server and
+                // compiles only the JS side; full-stack projects keep the JVM server flow.
+                val hasJvm = project.tasks.findByName("compileKotlinJvm") != null
+                val serverPort = if (hasJvm) "9000" else "3000"
+                val serverGradleTask = if (hasJvm) "run" else "jsBrowserDevelopmentRun"
+                val compileTasks = if (hasJvm) "compileKotlinJvm compileKotlinJs build-style" else "compileKotlinJs build-style"
+                val cssResourceDir = if (hasJvm) "src/jvmMain/resources" else "src/jsMain/resources"
+
                 // Generate improved watch script with hot reload using tmux
                 val scriptContent = """
                     #!/bin/bash
@@ -43,7 +52,7 @@ class ZonedPlugin : Plugin<Project> {
                     # Or it will regenerate automatically on next build.
                     ##############################################################################
 
-                    PORT=9000
+                    PORT=$serverPort
                     SERVER_PID=""
                     SESSION_NAME="zoned-watch-${'$'}${'$'}"
 
@@ -225,10 +234,16 @@ class ZonedPlugin : Plugin<Project> {
                         trap - SIGINT SIGTERM  # Remove traps to prevent re-entry
                         echo ""
                         echo "Shutting down..."
+                        # Kill waiter process
+                        if [ -n "${'$'}WAITER_PID" ]; then
+                            kill ${'$'}WAITER_PID 2>/dev/null || true
+                            wait ${'$'}WAITER_PID 2>/dev/null || true
+                        fi
                         # Kill server
                         if [ -n "${'$'}SERVER_PID" ]; then
                             pkill -TERM -P ${'$'}SERVER_PID 2>/dev/null || true
                             kill ${'$'}SERVER_PID 2>/dev/null || true
+                            wait ${'$'}SERVER_PID 2>/dev/null || true
                         fi
                         # Kill any remaining processes on port
                         lsof -i:${'$'}PORT -sTCP:LISTEN -t 2>/dev/null | xargs -r kill -9 2>/dev/null || true
@@ -237,9 +252,10 @@ class ZonedPlugin : Plugin<Project> {
                     trap cleanup SIGINT SIGTERM
 
                     kill_server() {
-                        # Kill waiter process
+                        # Kill waiter process first
                         if [ -n "${'$'}WAITER_PID" ]; then
                             kill ${'$'}WAITER_PID 2>/dev/null || true
+                            wait ${'$'}WAITER_PID 2>/dev/null || true
                             WAITER_PID=""
                         fi
 
@@ -252,28 +268,38 @@ class ZonedPlugin : Plugin<Project> {
                             SERVER_PID=""
                         fi
 
-                        # Kill any process holding the port
+                        # Kill any process holding the port (port-based cleanup)
                         local pids=${'$'}(lsof -i:${'$'}PORT -sTCP:LISTEN -t 2>/dev/null)
                         if [ -n "${'$'}pids" ]; then
-                            echo "${'$'}pids" | xargs -r kill -9 2>/dev/null || true
+                            echo "${'$'}pids" | xargs -r kill -TERM 2>/dev/null || true
+                            sleep 0.5
+                            # Force kill if still alive
+                            pids=${'$'}(lsof -i:${'$'}PORT -sTCP:LISTEN -t 2>/dev/null)
+                            if [ -n "${'$'}pids" ]; then
+                                echo "${'$'}pids" | xargs -r kill -9 2>/dev/null || true
+                            fi
                         fi
 
-                        # Wait for port to be free (up to 3 seconds)
+                        # Wait for port to be definitively free (up to 5 seconds)
                         local attempts=0
-                        while [ ${'$'}attempts -lt 30 ]; do
+                        while [ ${'$'}attempts -lt 50 ]; do
                             if ! lsof -i:${'$'}PORT -sTCP:LISTEN -t &>/dev/null; then
-                                return 0
+                                # Double-check with a short delay
+                                sleep 0.2
+                                if ! lsof -i:${'$'}PORT -sTCP:LISTEN -t &>/dev/null; then
+                                    return 0
+                                fi
                             fi
                             sleep 0.1
                             attempts=${'$'}((attempts + 1))
                         done
 
-                        # Force kill if still occupied
+                        # Final force kill if still occupied
                         pids=${'$'}(lsof -i:${'$'}PORT -sTCP:LISTEN -t 2>/dev/null)
                         if [ -n "${'$'}pids" ]; then
                             echo "⚠️  Force killing stubborn processes on port ${'$'}PORT..."
                             echo "${'$'}pids" | xargs -r kill -9 2>/dev/null || true
-                            sleep 0.5
+                            sleep 1.0
                         fi
                     }
 
@@ -287,27 +313,49 @@ class ZonedPlugin : Plugin<Project> {
                         # Kill any stale waiter processes
                         if [ -n "${'$'}WAITER_PID" ]; then
                             kill ${'$'}WAITER_PID 2>/dev/null || true
+                            wait ${'$'}WAITER_PID 2>/dev/null || true
                             WAITER_PID=""
                         fi
 
-                        # Final verification that port is free
-                        if lsof -i:${'$'}PORT -sTCP:LISTEN -t &>/dev/null; then
-                            echo "⚠️  Port ${'$'}PORT still in use, waiting..."
-                            sleep 1
-                            lsof -i:${'$'}PORT -sTCP:LISTEN -t 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+                        # Aggressive port verification - retry multiple times
+                        local port_check_attempts=0
+                        while lsof -i:${'$'}PORT -sTCP:LISTEN -t &>/dev/null; do
+                            if [ ${'$'}port_check_attempts -eq 0 ]; then
+                                echo "⚠️  Port ${'$'}PORT still in use, cleaning up..."
+                            fi
+                            local pids=${'$'}(lsof -i:${'$'}PORT -sTCP:LISTEN -t 2>/dev/null)
+                            if [ -n "${'$'}pids" ]; then
+                                echo "${'$'}pids" | xargs -r kill -9 2>/dev/null || true
+                            fi
                             sleep 0.5
-                        fi
+                            port_check_attempts=${'$'}((port_check_attempts + 1))
+                            if [ ${'$'}port_check_attempts -gt 10 ]; then
+                                echo "❌ Failed to free port ${'$'}PORT after 10 attempts"
+                                return 1
+                            fi
+                        done
+
+                        # Final safety check
+                        sleep 0.2
 
                         local start_ms=${'$'}(date +%s%3N)
                         echo "🚀 [${'$'}(timestamp)] Starting server..."
-                        # Use setsid to run server in a new session, completely detached
-                        setsid ./gradlew --console=plain run > >(colorize_output) 2>&1 &
+                        # Use setsid to run server in a new session, completely detached.
+                        # Full-stack: the JVM `run` task. Frontend-only: the webpack dev server.
+                        setsid ./gradlew --console=plain $serverGradleTask > >(colorize_output) 2>&1 &
                         SERVER_PID=${'$'}!
 
                         # Wait for server to be ready (port listening) - track PID to kill later
                         (
+                            local wait_attempts=0
                             while ! lsof -i:${'$'}PORT -sTCP:LISTEN -t &>/dev/null; do
                                 sleep 0.1
+                                wait_attempts=${'$'}((wait_attempts + 1))
+                                # Timeout after 60 seconds
+                                if [ ${'$'}wait_attempts -gt 600 ]; then
+                                    echo "⚠️  Server failed to start within 60 seconds"
+                                    exit 1
+                                fi
                             done
                             local ready_ms=${'$'}(date +%s%3N)
                             local elapsed=${'$'}((ready_ms - start_ms))
@@ -318,7 +366,7 @@ class ZonedPlugin : Plugin<Project> {
 
                     # Track newest file modification time (includes zoned library)
                     get_newest_mtime() {
-                        { find src/jvmMain src/commonMain src/jsMain -name "*.kt" -printf '%T@\n' 2>/dev/null; find src/jvmMain/resources -name "*.css" -printf '%T@\n' 2>/dev/null; find ~/.m2/repository/io/4rc/zoned* -name "*.jar" -printf '%T@\n' 2>/dev/null; } | sort -rn | head -1
+                        { find src/jvmMain src/commonMain src/jsMain -name "*.kt" -printf '%T@\n' 2>/dev/null; find $cssResourceDir -name "*.css" -printf '%T@\n' 2>/dev/null; find ~/.m2/repository/io/4rc/zoned* -name "*.jar" -printf '%T@\n' 2>/dev/null; } | sort -rn | head -1
                     }
 
                     # Check if zoned library changed (returns 0 if changed, 1 if not)
@@ -347,7 +395,7 @@ class ZonedPlugin : Plugin<Project> {
                         local compile_start=${'$'}(date +%s%3N 2>/dev/null || date +%s)
                         # Compile both JVM and JS (skip slow webpack bundling), include build-style for CSS
                         local build_output
-                        build_output=${'$'}(./gradlew --console=plain --parallel --build-cache ${'$'}refresh_flag compileKotlinJvm compileKotlinJs build-style \
+                        build_output=${'$'}(./gradlew --console=plain --parallel --build-cache ${'$'}refresh_flag $compileTasks \
                             -x jsBrowserProductionWebpack -x jsProductionExecutableCompileSync \
                             -x compileProductionExecutableKotlinJs -x jsBrowserDistribution 2>&1)
                         local build_status=${'$'}?

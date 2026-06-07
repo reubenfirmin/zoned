@@ -10,6 +10,25 @@ external object Ace {
     fun edit(id: String): AceEditor
 }
 
+// Ace lazy-loads themes/modes/workers at runtime; without help it fetches them from the
+// server root (e.g. /theme-monokai.js), which 404s under a bundler. The webpack resolver
+// registers webpack-bundled URLs for every theme/mode/worker (via ace.config.setModuleUrl,
+// using the file-loader npm dep). Importing it for its side effects is enough.
+@JsModule("ace-builds/webpack-resolver")
+@JsNonModule
+external val aceWebpackResolver: dynamic
+
+private var aceResolverReady = false
+
+/** Ensure Ace resolves theme/mode/worker assets via webpack (not server-root 404s). Call before [Ace.edit]. */
+fun ensureAceResolver() {
+    if (aceResolverReady) return
+    // Touch the module so it isn't tree-shaken and its setModuleUrl side effects run.
+    @Suppress("UNUSED_EXPRESSION")
+    aceWebpackResolver
+    aceResolverReady = true
+}
+
 external interface AceEditor {
     fun on(event: String, cb: (delta: AceDelta) -> Unit)
     fun destroy()

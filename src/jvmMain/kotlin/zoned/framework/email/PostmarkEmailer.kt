@@ -17,10 +17,21 @@ class PostmarkEmailer @Inject constructor(@Named(Bindings.POSTMARK_SECRET) val p
     private val threadPool = Executors.newCachedThreadPool()
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    fun sendSimpleEmail(from: String, to: String, subject: String, body: String ): Future<Boolean> {
+    fun sendSimpleEmail(
+        from: String,
+        to: String,
+        subject: String,
+        body: String,
+        textBody: String? = null
+    ): Future<Boolean> {
         return threadPool.submit(Callable {
             val message = Message(from, to, subject, body)
             message.setMessageStream("outbound")
+            // Always set TextBody explicitly. Without one, Postmark auto-derives a
+            // plain-text alternative from the HTML which renders <a href="…">CTA</a>
+            // as a visible bare URL ("Or paste this link into your browser: …").
+            // Fall back to subject if no caller-supplied text — never the body.
+            message.setTextBody(textBody ?: subject)
             val response: MessageResponse = client.deliverMessage(message)
             if (response.errorCode != 0) {
                 logger.error("Failed sending signup email to $to with body $body - details $response")

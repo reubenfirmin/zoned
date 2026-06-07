@@ -34,6 +34,28 @@ object WysiwygEnhancement : Enhancement<WysiwygConfig> {
 }
 
 /**
+ * Configuration for @mention autocomplete in WYSIWYG
+ */
+@Serializable
+data class MentionConfig(
+    /**
+     * Endpoint to search for users (e.g., "/mentions/search")
+     * Should return JSON array: [{ key: "John Doe", value: "user-id-123" }, ...]
+     */
+    val searchEndpoint: String,
+
+    /**
+     * Trigger character (default: @)
+     */
+    val trigger: String = "@",
+
+    /**
+     * CSS class for the mention span (default: "mention")
+     */
+    val mentionClass: String = "mention"
+)
+
+/**
  * Configuration for the WYSIWYG enhancement.
  * Note: inputName and placeholder come from the wrapped textarea element.
  */
@@ -47,6 +69,11 @@ data class WysiwygConfig(
     /**
      * Toolbar options: "minimal", "standard", or "full"
      */
-    var toolbar: String = "minimal"
+    var toolbar: String = "minimal",
+
+    /**
+     * Optional @mention configuration. When set, enables @mention autocomplete.
+     */
+    var mentionConfig: MentionConfig? = null
 ) : EnhancementConfig
 

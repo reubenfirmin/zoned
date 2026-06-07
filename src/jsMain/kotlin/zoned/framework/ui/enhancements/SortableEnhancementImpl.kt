@@ -1,6 +1,6 @@
 package zoned.framework.ui.enhancements
 
-import js.core.asString
+import js.string.asString
 import js.objects.unsafeJso
 import kotlinx.html.TagConsumer
 import kotlinx.html.div

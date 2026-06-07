@@ -1,12 +1,14 @@
 package zoned.gradle.enhancements
 
 import org.gradle.api.DefaultTask
+import org.gradle.work.DisableCachingByDefault
 import org.gradle.api.tasks.TaskAction
 import java.io.File
 
 /**
  * Gradle task that generates enhancement DSL and registry code
  */
+@DisableCachingByDefault(because = "Generates source files from project scan")
 open class EnhancementCodeGenerator : DefaultTask() {
 
     @TaskAction

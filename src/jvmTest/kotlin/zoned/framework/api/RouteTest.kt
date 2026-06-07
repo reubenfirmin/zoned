@@ -68,6 +68,22 @@ class RouteTest {
     }
 
     @Test
+    fun `query param values are url-encoded`() {
+        val route = BaseRoute("/go", Method.GET)
+        val parameterized = route.param("next", "/a b&admin=1")
+        // The space, '&' and '=' must be encoded so they don't corrupt or inject query params.
+        assertEquals("/go?next=%2Fa+b%26admin%3D1", parameterized.url())
+    }
+
+    @Test
+    fun `jwt-like token survives encoding unchanged`() {
+        // base64url + dot separators are all URL-safe and must not be mangled.
+        val token = "eyJhbGci.eyJzdWIi-_.Sf1KxwRJ_Sm9"
+        val route = BaseRoute("/magiclink/verify", Method.GET).param("token", token)
+        assertEquals("/magiclink/verify?token=$token", route.url())
+    }
+
+    @Test
     fun `path with no params returns unchanged`() {
         val route = BaseRoute("/api/simple", Method.GET)
         assertEquals("/api/simple", route.url())

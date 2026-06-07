@@ -1,9 +1,11 @@
 package zoned.gradle.db
 
 import org.gradle.api.DefaultTask
+import org.gradle.work.DisableCachingByDefault
 import org.gradle.api.tasks.TaskAction
 import zoned.gradle.DatabaseSetup
 
+@DisableCachingByDefault(because = "Mutates external database state")
 open class DatabaseMigrator : DefaultTask() {
 
     @TaskAction

@@ -8,13 +8,13 @@ import java.net.URI
 import java.util.*
 
 fun Context.redirect(route: Route): Response {
-    val currentMethod = when(handlerType()) {
+    val currentMethod = when(method()) {
         HandlerType.PUT -> Method.PUT
         HandlerType.POST -> Method.POST
         HandlerType.GET -> Method.GET
         HandlerType.DELETE -> Method.DELETE
         HandlerType.PATCH -> Method.PATCH
-        else -> throw Exception("No support for ${handlerType()}")
+        else -> throw Exception("No support for ${method()}")
     }
     if (currentMethod != route.method) {
         // (TODO) use HTMX to switch method
@@ -22,7 +22,7 @@ fun Context.redirect(route: Route): Response {
             location(route.url())
             html("ok")
         } else {
-            throw Exception("Cannot redirect from a ${handlerType()} to a ${route.method}")
+            throw Exception("Cannot redirect from a ${method()} to a ${route.method}")
         }
     } else {
         redirect(route.url())

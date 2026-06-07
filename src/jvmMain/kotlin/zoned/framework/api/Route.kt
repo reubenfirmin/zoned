@@ -2,6 +2,10 @@ package zoned.framework.api
 
 import io.javalin.http.HandlerType
 import zoned.framework.auth.Role
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+
+private fun urlEncode(value: String): String = URLEncoder.encode(value, StandardCharsets.UTF_8)
 
 interface Route {
 
@@ -75,8 +79,8 @@ data class ParameterizedRoute(
             path = path.replace("{$key}", value)
         }
 
-        // Append query params
-        val paramStr = queryParams.entries.joinToString("&") { (key, value) -> "$key=$value" }
+        // Append query params, url-encoding names and values so they can't corrupt or inject the query string
+        val paramStr = queryParams.entries.joinToString("&") { (key, value) -> "${urlEncode(key)}=${urlEncode(value)}" }
         return "$path${if (paramStr.isNotEmpty()) "?$paramStr" else ""}"
     }
 

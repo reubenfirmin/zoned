@@ -6,9 +6,11 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.*
 import com.github.gradle.node.npm.task.NpxTask
 import org.gradle.api.DefaultTask
+import org.gradle.work.DisableCachingByDefault
 import java.io.File
 import javax.inject.Inject
 
+@DisableCachingByDefault(because = "Runs tailwind CSS build; output not portable across machines")
 abstract class BuildStyleTask @Inject constructor(
     private val layout: ProjectLayout
 ) : DefaultTask() {
@@ -17,10 +19,12 @@ abstract class BuildStyleTask @Inject constructor(
     abstract val librarySrcDir: DirectoryProperty
 
     @get:InputFile
+    @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val inputCssFile: RegularFileProperty
 
     @get:InputFile
     @get:Optional
+    @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val configFile: RegularFileProperty
 
     @get:OutputFile
@@ -29,9 +33,12 @@ abstract class BuildStyleTask @Inject constructor(
     private lateinit var npxTask: NpxTask
 
     init {
-        // Set up default file locations
+        // Set up default file locations. Full-stack projects keep the source CSS under
+        // jvmMain; frontend-only (JS) projects have no jvmMain, so fall back to jsMain.
         val projectDir = layout.projectDirectory
-        inputCssFile.convention(projectDir.file("src/jvmMain/resources/style.css"))
+        val jvmCss = projectDir.file("src/jvmMain/resources/style.css")
+        val jsCss = projectDir.file("src/jsMain/resources/style.css")
+        inputCssFile.convention(if (jvmCss.asFile.exists()) jvmCss else jsCss)
         configFile.convention(projectDir.file("tailwind.config.js"))
         outputFile.convention(projectDir.file("dist/output.css"))
         librarySrcDir.convention(layout.buildDirectory.dir("tmp/library-src"))
@@ -140,6 +147,7 @@ abstract class BuildStyleTask @Inject constructor(
     }
 
     @InputFiles
+    @PathSensitive(PathSensitivity.RELATIVE)
     fun getSourceFiles() = project.fileTree("src/jvmMain/kotlin") +
             project.fileTree("src/jsMain/kotlin") +
             project.fileTree(librarySrcDir)

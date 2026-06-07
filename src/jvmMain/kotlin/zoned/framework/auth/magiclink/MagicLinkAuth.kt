@@ -27,6 +27,7 @@ import java.util.*
  */
 const val MAGIC_LINK_EMAIL = "email"
 const val MAGIC_LINK_USER_ID = "userId"
+const val MAGIC_LINK_KEY_HASH = "keyHash"
 
 /**
  * Magic link authentication API.
@@ -57,14 +58,25 @@ class MagicLinkAuth @Inject constructor(
         val user = provider.findUserByEmail(email)
         val isNewUser = user == null
 
-        // Create short-lived token
-        val token = jwt.createExpiringToken(
-            mapOf(
-                MAGIC_LINK_EMAIL to email,
-                MAGIC_LINK_USER_ID to (user?.id?.toString() ?: "")
-            ),
-            provider.tokenExpirySeconds()
+        // Get current auth key hash to make link one-time-use
+        val currentKeyHash = user?.let { provider.getAuthKeyHash(it.id) } ?: ""
+
+        // Build JWT claims: framework claims + custom params
+        val claims = mutableMapOf(
+            MAGIC_LINK_EMAIL to email,
+            MAGIC_LINK_USER_ID to (user?.id?.toString() ?: ""),
+            MAGIC_LINK_KEY_HASH to currentKeyHash
         )
+
+        // Add custom params from provider (prefixed to avoid conflicts)
+        provider.customMagicLinkParamNames().forEach { paramName ->
+            ctx.formParam(paramName)?.let { paramValue ->
+                claims["custom_$paramName"] = paramValue
+            }
+        }
+
+        // Create short-lived token
+        val token = jwt.createExpiringToken(claims, provider.tokenExpirySeconds())
 
         // Build magic link URL
         val magicLinkUrl = if (user != null) {
@@ -86,15 +98,22 @@ class MagicLinkAuth @Inject constructor(
         val text2 = provider.emailBodyText2(ctx, isNewUser)
         val linkText = provider.emailLinkText(ctx, isNewUser)
 
-        // Render email
-        val emailBody = renderEmail(magicLinkUrl, subject, text1, text2, linkText)
+        // Render email - provider can fully override, or fall back to framework template
+        val emailBody = provider.renderEmailBody(ctx, magicLinkUrl, subject, text1, text2, linkText, isNewUser)
+            ?: renderEmail(magicLinkUrl, subject, text1, text2, linkText)
 
-        // Send email
+        // Send email. Pass an explicit text body so Postmark doesn't auto-derive
+        // one from the HTML (which would expose the magic link as a bare URL).
+        // Body is intentionally URL-free; HTML clients show the CTA button.
+        val textBody = "$subject\n\n$text1 $text2\n\n" +
+                "Open this email in an HTML-capable client to continue. " +
+                "If you didn't request this, you can ignore it."
         emailer.sendSimpleEmail(
             provider.fromEmail(),
             email,
             subject,
-            emailBody
+            emailBody,
+            textBody
         )
 
         // Show confirmation page
@@ -113,10 +132,13 @@ class MagicLinkAuth @Inject constructor(
         }
 
         return try {
-            // Extract and validate token
-            val claims = jwt.extractClaims(token, listOf(MAGIC_LINK_EMAIL, MAGIC_LINK_USER_ID))
+            // Extract and validate token - get all claims including custom ones
+            val allClaimNames = listOf(MAGIC_LINK_EMAIL, MAGIC_LINK_USER_ID, MAGIC_LINK_KEY_HASH) +
+                    provider.customMagicLinkParamNames().map { "custom_$it" }
+            val claims = jwt.extractClaims(token, allClaimNames)
             val email = claims[MAGIC_LINK_EMAIL]
             val userIdStr = claims[MAGIC_LINK_USER_ID]
+            val tokenKeyHash = claims[MAGIC_LINK_KEY_HASH] ?: ""
             val userId = userIdStr?.toUUID()
 
             if (userId == null) {
@@ -128,27 +150,52 @@ class MagicLinkAuth @Inject constructor(
 
             val user = provider.findUserById(userId)
 
-            // Generate new auth key
+            // Atomically consume the link: check-and-rotate the auth key in one operation so
+            // two concurrent clicks of the same link can't both log in. If we lose the swap,
+            // the link was already used (or is a stale outstanding link).
             val newKey = generateKey()
-            provider.updateAuthKey(user.id, newKey)
+            if (!provider.consumeAuthKey(user.id, tokenKeyHash, newKey)) {
+                logger.info("Magic link already used: key hash mismatch for user ${user.id}")
+                // If user is already logged in, just redirect to success
+                if (provider.isUserLoggedIn(ctx)) {
+                    return ctx.redirect(provider.loginSuccessRoute(user))
+                }
+                return provider.renderLinkAlreadyUsedPage(ctx)
+                    ?: defaultAlreadyUsedPage(ctx)
+            }
 
             // Issue long-lived auth token
             val authToken = jwt.issue(user)
 
-            // Set auth cookie
+            // Set auth cookie with security flags
             ctx.cookie(Cookie(
                 name = "auth_token",
                 value = "${user.email}|$authToken",
                 maxAge = 86400, // 24 hours
                 path = "/",
-                sameSite = SameSite.LAX
+                sameSite = SameSite.LAX,
+                secure = true,      // Only sent over HTTPS
+                isHttpOnly = true   // Not accessible from JavaScript
             ))
 
             // Call custom hook
             provider.onLoginSuccess(ctx, user)
 
+            // Build redirect route with custom params from JWT
+            val successRoute = provider.loginSuccessRoute(user)
+            val customParams = claims
+                .filterKeys { it.startsWith("custom_") }
+                .mapKeys { (key, _) -> key.removePrefix("custom_") }
+
+            // Add custom params as query parameters (if any)
+            val routeWithParams = if (customParams.isNotEmpty() && successRoute is BaseRoute) {
+                successRoute.params(customParams)
+            } else {
+                successRoute
+            }
+
             // Redirect to success route
-            return ctx.redirect(provider.loginSuccessRoute(user))
+            return ctx.redirect(routeWithParams)
 
         } catch (e: TokenExpiredException) {
             logger.warn("Magic link verification failed: token expired", e)
@@ -182,12 +229,14 @@ class MagicLinkAuth @Inject constructor(
 
         // Substitute variables
         return template
-            .replace("\${host}", baseUrl)
             .replace("\${cta}", magicLinkUrl)
             .replace("\${linkText}", linkText)
             .replace("\${subject}", subject)
             .replace("\${text1}", text1)
             .replace("\${text2}", text2)
+            .replace("\${appName}", provider.appName())
+            .replace("\${accentColor}", provider.emailAccentColor())
+            .replace("\${heroEmoji}", provider.emailHeroEmoji())
     }
 
     private fun generateKey(): String {
@@ -226,6 +275,25 @@ class MagicLinkAuth @Inject constructor(
                 }
                 p("text-gray-600 mb-6") {
                     +"Please request a new one to sign in."
+                }
+                a(href = "/", classes = "inline-block mt-4 px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700") {
+                    +"Return to Home"
+                }
+            }
+        }
+    }
+
+    private fun defaultAlreadyUsedPage(ctx: Context): Response {
+        return ctx.fragment {
+            div("max-w-2xl mx-auto mt-20 p-8 text-center") {
+                h1("text-3xl font-bold text-gray-800 mb-4") {
+                    +"🔗 Link Already Used"
+                }
+                p("text-gray-600 mb-2") {
+                    +"This magic link has already been used."
+                }
+                p("text-gray-600 mb-6") {
+                    +"Magic links can only be used once. Please request a new one to sign in."
                 }
                 a(href = "/", classes = "inline-block mt-4 px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700") {
                     +"Return to Home"

@@ -1,7 +1,7 @@
 package zoned.framework.api
 
-import io.javalin.Javalin
 import io.javalin.http.Context
+import io.javalin.router.JavalinDefaultRoutingApi
 import kotlinx.html.FlowContent
 import zoned.framework.auth.Role
 import zoned.framework.db.FormObject
@@ -11,6 +11,7 @@ import zoned.framework.ui.layouts.HTMXTarget
 import zoned.framework.ui.libs.target
 import zoned.framework.ui.libs.unwrap
 import zoned.framework.util.Either
+import java.lang.reflect.InvocationTargetException
 import kotlin.jvm.internal.CallableReference
 import kotlin.reflect.*
 import kotlin.reflect.full.*
@@ -27,7 +28,7 @@ annotation class PUT(val path: String = "", vararg val roles: Role)
 annotation class DELETE(val path: String = "", vararg val roles: Role)
 annotation class PATCH(val path: String = "", vararg val roles: Role)
 
-fun Javalin.install(vararg resources: Api) {
+internal fun JavalinDefaultRoutingApi.install(vararg resources: Api) {
 
     resources.forEach { resource ->
         val (basePath, baseRoles) = resource.basePath to resource.baseRoles
@@ -74,42 +75,47 @@ fun Javalin.install(vararg resources: Api) {
                 apiHandle(routeAnnotation) { context ->
                     context.route(routeAnnotation.route)
 
-                    when {
-                        // Case A: Context, ConvertedEntity<T: FormObject> -> Response
-                        it.parameters.size == 3 && it.parameters[2].type.classifier == ConvertedEntity::class -> {
-                            val formType = it.parameters[2].type.arguments.firstOrNull()?.type?.classifier as? KClass<*>
-                            if (formType == null || !formType.isSubclassOf(FormObject::class)) {
-                                throw IllegalArgumentException("Invalid form type: must be ConvertedEntity<T> where T is a subclass of FormObject")
+                    try {
+                        when {
+                            // Case A: Context, ConvertedEntity<T: FormObject> -> Response
+                            it.parameters.size == 3 && it.parameters[2].type.classifier == ConvertedEntity::class -> {
+                                val formType = it.parameters[2].type.arguments.firstOrNull()?.type?.classifier as? KClass<*>
+                                if (formType == null || !formType.isSubclassOf(FormObject::class)) {
+                                    throw IllegalArgumentException("Invalid form type: must be ConvertedEntity<T> where T is a subclass of FormObject")
+                                }
+                                val formObject = context.parseForm(formType as KClass<FormObject>)
+                                (it as KFunction3<Any, Context, ConvertedEntity<*>, Response>).call(resource, context, formObject)
                             }
-                            val formObject = context.parseForm(formType as KClass<FormObject>)
-                            (it as KFunction3<Any, Context, ConvertedEntity<*>, Response>).call(resource, context, formObject)
+
+                            // Case B: Context, FormObject? -> Response
+                            it.parameters.size == 3 && it.parameters[2].type.isMarkedNullable &&
+                                    (it.parameters[2].type.classifier as? KClass<*>)?.isSubclassOf(FormObject::class) == true -> {
+                                val formType = it.parameters[2].type.classifier as KClass<*>
+                                val formObject = context.parseForm(formType as KClass<FormObject>)
+
+                                (it as KFunction3<Any, Context, FormObject?, Response>)
+                                    .call(resource, context, if (formObject.valid()) {
+                                            formObject.entity()
+                                        } else {
+                                            null
+                                        })
+                            }
+
+                            // Case C: Context -> Response
+                            it.parameters.size == 2 && it.parameters[1].type.classifier == Context::class -> {
+                                (it as KFunction2<Any, Context, Response>).call(resource, context)
+                            }
+
+                            // Case D: () -> Response
+                            it.parameters.size == 1 -> {
+                                (it as KFunction1<Any, Response>).call(resource)
+                            }
+
+                            else -> throw IllegalArgumentException("Unsupported function signature: $it")
                         }
-
-                        // Case B: Context, FormObject? -> Response
-                        it.parameters.size == 3 && it.parameters[2].type.isMarkedNullable &&
-                                (it.parameters[2].type.classifier as? KClass<*>)?.isSubclassOf(FormObject::class) == true -> {
-                            val formType = it.parameters[2].type.classifier as KClass<*>
-                            val formObject = context.parseForm(formType as KClass<FormObject>)
-
-                            (it as KFunction3<Any, Context, FormObject?, Response>)
-                                .call(resource, context, if (formObject.valid()) {
-                                        formObject.entity()
-                                    } else {
-                                        null
-                                    })
-                        }
-
-                        // Case C: Context -> Response
-                        it.parameters.size == 2 && it.parameters[1].type.classifier == Context::class -> {
-                            (it as KFunction2<Any, Context, Response>).call(resource, context)
-                        }
-
-                        // Case D: () -> Response
-                        it.parameters.size == 1 -> {
-                            (it as KFunction1<Any, Response>).call(resource)
-                        }
-
-                        else -> throw IllegalArgumentException("Unsupported function signature: $it")
+                    } catch (e: InvocationTargetException) {
+                        // Unwrap reflection exceptions to preserve original exception type for handlers
+                        throw e.cause ?: e
                     }
                 }
             }
@@ -131,7 +137,7 @@ fun printRegisteredEndpoints() {
     }
 }
 
-fun Javalin.apiHandle(authedRoute: AuthedRoute, eval: (Context) -> Response): BaseRoute {
+internal fun JavalinDefaultRoutingApi.apiHandle(authedRoute: AuthedRoute, eval: (Context) -> Response): BaseRoute {
 
     return with (authedRoute.route) {
         addHttpHandler(method.toJavalin(), path, { ctx ->

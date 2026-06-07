@@ -167,6 +167,50 @@ import kotlinx.css.properties.Transition
 import kotlinx.css.properties.ms
 ```
 
+## Rendering Model (kotlinx.html + ElementTrackingConsumer)
+
+Read this before building client-side UI. It is the paradigm the DSL is built on.
+
+**Two tag builders, selected by the RECEIVER type** (from kotlinx.html `visit.kt` / generated builders):
+
+- `FlowContent.div { }` → `DIV(…, consumer).visit(block)` = `onTagStart / block / onTagEnd`,
+  **no finalize** → a **child** of the enclosing element.
+- `TagConsumer<T>.div { }` → `DIV(…, this).visitAndFinalize(this, block)` = visit **+ `finalize()`**.
+  In `ElementTrackingConsumer`, `finalize()` does `parent.appendChild(element)`, pops the tracker
+  stack, and fires queued `onMount` callbacks.
+
+**Rule: content-building helpers MUST take a `FlowContent`/`Tag` receiver, never `TagConsumer`.**
+A `TagConsumer<HTMLElement>` extension called from inside a `div { }` block resolves `div { }` to
+the *finalize* variant, so it builds finalized **siblings on the consumer root** (e.g. `<body>`)
+instead of children — and pops the tracker, breaking `onMount`/`ref` nesting. (Enhancement
+entrypoints like `TagConsumer<HTMLElement>.initFooEnhancement` are `TagConsumer` extensions *on
+purpose* — they ARE the top-level consumer for that subtree.)
+
+```kotlin
+// WRONG — finalized siblings on <body>, tracker popped (onMount throws)
+fun TagConsumer<HTMLElement>.renderItems(xs: List<X>) { xs.forEach { div { ... } } }
+addToBody { div { renderItems(xs) } }
+
+// CORRECT — children of the div
+fun FlowContent.renderItems(xs: List<X>) { xs.forEach { div { ... } } }
+addToBody { div { renderItems(xs) } }
+```
+
+**DSL events bind LIVE listeners.** `onClick`/`onContextMenu`/`onMouseLeave`/… set `onXFunction`,
+which calls `consumer.onTagEvent` → `JSDOMBuilder` attaches the listener immediately to the element.
+Use the DSL handlers directly for element events — you do **not** need `onMount` + `addEventListener`.
+
+**`onMount` runs post-append.** `finalize()` appends the element, then runs `onMount`. So inside
+`onMount` the element is live: use it for measurement (`getBoundingClientRect`), layout-dependent
+positioning, focus, and **document-level** listeners (which aren't tied to a built element). `ref`
+is captured synchronously during the DSL, but only *use* `ref.element` once it's in the DOM
+(i.e. in `onMount`).
+
+**Floating element recipe (menu/tooltip/modal):** one container —
+`addToBody { div { ref(r); css { /* typed styling + initial position */ }; /* children on FlowContent */; onMouseLeave { hide() }; onMount { keepOnScreen(r.element); installDocumentDismissListeners() } } }` — removed on dismiss.
+Dynamic position known at build (cursor x/y) goes in `css { left = x.px; top = y.px }`; post-measure
+nudges use `element.style.left` (the sanctioned dynamic-value exception to the `css {}` rule).
+
 ## Ref Pattern for Element References
 
 Instead of `document.getElementById()`, use the typed `Ref<T>` pattern:

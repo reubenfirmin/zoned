@@ -1,51 +1,131 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <meta name="supported-color-schemes" content="dark light">
     <title>${subject}</title>
+    <style>
+        @media only screen and (max-width: 600px) {
+            .col { padding-left: 28px !important; padding-right: 28px !important; }
+            .display { font-size: 38px !important; line-height: 1.05 !important; }
+            .body-text { font-size: 16px !important; }
+            .meta { font-size: 10px !important; letter-spacing: 0.12em !important; }
+            .stack-pad-top { padding-top: 56px !important; }
+            .stack-pad-bottom { padding-top: 56px !important; }
+        }
+        a { text-decoration: none; }
+    </style>
 </head>
-<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
-<table role="presentation" style="width: 100%; border-collapse: collapse;">
+<body style="margin:0;padding:0;background-color:#0a1424;font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#e6edf6;-webkit-font-smoothing:antialiased;">
+
+<!-- Inbox preview -->
+<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:transparent;opacity:0;">${text1}</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0a1424" style="background-color:#0a1424;">
     <tr>
-        <td style="padding: 0;">
-            <table role="presentation" style="width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden;">
-                <!-- Header -->
+        <td align="center" style="padding:0;">
+            <table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" style="max-width:640px;width:100%;">
+
+                <!-- Top accent rule, brand color -->
                 <tr>
-                    <td style="padding: 40px 30px; text-align: center;">
-                        <h1 style="color: #333333; font-size: 24px; margin-top: 20px;">${subject}</h1>
-                    </td>
+                    <td height="4" bgcolor="${accentColor}" style="line-height:0;font-size:0;height:4px;background-color:${accentColor};">&nbsp;</td>
                 </tr>
 
-                <!-- Body -->
+                <!-- Masthead: wordmark left · meta right -->
                 <tr>
-                    <td style="padding: 30px;">
-                        <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 20px;">
-                            ${text1}
-                        </p>
-                        <p style="color: #666666; font-size: 16px; line-height: 1.6; margin: 0 0 30px;">
-                            ${text2}
-                        </p>
-
-                        <!-- CTA Button -->
-                        <table role="presentation" style="margin: 0 auto;">
+                    <td class="col" style="padding:28px 48px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                             <tr>
-                                <td style="border-radius: 4px; background-color: #007bff;">
-                                    <a href="${cta}" style="display: inline-block; padding: 16px 36px; font-size: 16px; color: #ffffff; text-decoration: none">${linkText}</a>
+                                <td valign="middle" align="left" style="line-height:0;">
+                                    ${heroEmoji}<span style="font-size:13px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#e6edf6;vertical-align:middle;margin-left:12px;line-height:1;">${appName}</span>
+                                </td>
+                                <td valign="middle" align="right" style="line-height:0;">
+                                    <span style="font-family:'SF Mono',Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:${accentColor};line-height:1;">Secure&nbsp;Link</span>
                                 </td>
                             </tr>
                         </table>
                     </td>
                 </tr>
 
-                <!-- Footer -->
+                <!-- Hairline beneath masthead, brand-tinted -->
                 <tr>
-                    <td style="padding: 30px; background-color: #f8f9fa; text-align: center;">
-                        <p style="color: #999999; font-size: 14px; margin: 0;">
-                            This link will expire soon. If you didn't request this, you can safely ignore this email.
-                        </p>
+                    <td class="col" style="padding:0 48px;">
+                        <div style="height:1px;line-height:0;font-size:0;background-color:#1c2c44;">&nbsp;</div>
                     </td>
                 </tr>
+
+                <!-- Brand-color tag/eyebrow above the heading -->
+                <tr>
+                    <td class="col stack-pad-top" style="padding:104px 48px 0 48px;">
+                        <span style="display:inline-block;font-family:'SF Mono',Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:${accentColor};line-height:1;padding-bottom:24px;">— Sign in</span>
+                    </td>
+                </tr>
+
+                <!-- Display heading -->
+                <tr>
+                    <td class="col" style="padding:0 48px;">
+                        <h1 class="display" style="margin:0;font-size:54px;line-height:1.04;font-weight:700;letter-spacing:-0.035em;color:#ffffff;">${subject}</h1>
+                    </td>
+                </tr>
+
+                <!-- Body -->
+                <tr>
+                    <td class="col" style="padding:36px 48px 0 48px;">
+                        <p class="body-text" style="margin:0 0 16px 0;font-size:18px;line-height:1.6;color:#9fb1c8;max-width:520px;">${text1}</p>
+                        <p class="body-text" style="margin:0;font-size:18px;line-height:1.6;color:#9fb1c8;max-width:520px;">${text2}</p>
+                    </td>
+                </tr>
+
+                <!-- CTA -->
+                <tr>
+                    <td class="col" style="padding:48px 48px 0 48px;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                                <td bgcolor="${accentColor}" style="background-color:${accentColor};">
+                                    <!--[if mso]>
+                                    <v:rect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${cta}" style="height:54px;v-text-anchor:middle;width:240px;" stroke="f" fillcolor="${accentColor}">
+                                        <w:anchorlock/>
+                                        <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:600;">${linkText} &rarr;</center>
+                                    </v:rect>
+                                    <![endif]-->
+                                    <!--[if !mso]><!-- -->
+                                    <a href="${cta}" style="display:inline-block;padding:18px 34px;font-size:16px;color:#ffffff;text-decoration:none;font-weight:600;letter-spacing:-0.005em;line-height:1.2;">${linkText}&nbsp;&rarr;</a>
+                                    <!--<![endif]-->
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Spacer + footer rule -->
+                <tr>
+                    <td class="col stack-pad-bottom" style="padding:104px 48px 0 48px;">
+                        <div style="height:1px;line-height:0;font-size:0;background-color:#1c2c44;">&nbsp;</div>
+                    </td>
+                </tr>
+
+                <!-- Footer monospace -->
+                <tr>
+                    <td class="col" style="padding:20px 48px 48px 48px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                                <td align="left" valign="top" style="line-height:0;">
+                                    <span class="meta" style="font-family:'SF Mono',Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#5e7191;line-height:1.7;">
+                                        Expires soon &nbsp;·&nbsp; One-time use
+                                    </span>
+                                </td>
+                                <td align="right" valign="top" style="line-height:0;">
+                                    <span class="meta" style="font-family:'SF Mono',Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#5e7191;line-height:1.7;">
+                                        Didn't request? Ignore.
+                                    </span>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
             </table>
         </td>
     </tr>
