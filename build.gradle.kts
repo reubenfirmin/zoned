@@ -60,6 +60,7 @@ kotlin {
                 api("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${Versions.jackson}")
                 api("io.github.cdimascio:dotenv-kotlin:${Versions.dotenv}")
                 api("com.squareup.okhttp3:okhttp:5.3.2")
+                api("org.jsoup:jsoup:1.22.2")
                 api("com.google.guava:guava:33.6.0-jre")
                 api("dev.misfitlabs.kotlinguice4:kotlin-guice:3.0.0")
                 api("com.postmarkapp:postmark:1.13.0")
@@ -107,7 +108,6 @@ kotlin {
         val jvmTest by getting {
             dependencies {
                 implementation(kotlin("test"))
-                implementation("org.jsoup:jsoup:1.22.2")
                 implementation("com.squareup.okhttp3:okhttp:5.3.2")
             }
         }

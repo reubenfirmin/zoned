@@ -1,6 +1,7 @@
 package zoned.gradle.bundle
 
 import org.gradle.api.DefaultTask
+import org.gradle.work.DisableCachingByDefault
 import org.gradle.api.tasks.TaskAction
 import java.io.File
 
@@ -8,6 +9,7 @@ import java.io.File
  * Generates BundleConfig.kt with the project's bundle name
  * This allows the framework to know the bundle filename at compile time
  */
+@DisableCachingByDefault(because = "Generates bundle config from project state; not worth caching")
 open class BundleConfigGenerator : DefaultTask() {
 
     @TaskAction

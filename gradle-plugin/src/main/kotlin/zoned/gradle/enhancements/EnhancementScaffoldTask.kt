@@ -1,6 +1,7 @@
 package zoned.gradle.enhancements
 
 import org.gradle.api.DefaultTask
+import org.gradle.work.DisableCachingByDefault
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.options.Option
@@ -11,6 +12,7 @@ import java.io.File
  *
  * Usage: ./gradlew scaffold-enhancement --name=tooltip --package=myapp.enhancements
  */
+@DisableCachingByDefault(because = "Scaffolds source files on demand")
 open class EnhancementScaffoldTask : DefaultTask() {
 
     @Input

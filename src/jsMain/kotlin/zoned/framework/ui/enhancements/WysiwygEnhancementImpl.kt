@@ -1,9 +1,12 @@
 package zoned.framework.ui.enhancements
 
+import js.objects.unsafeJso
+import kotlinx.browser.window
 import kotlinx.css.*
 import kotlinx.css.properties.TextDecoration
 import kotlinx.css.properties.TextDecorationLine
 import kotlinx.html.*
+import kotlinx.html.stream.appendHTML
 import web.dom.Node
 import web.dom.document
 import web.html.HTMLElement
@@ -17,7 +20,11 @@ import web.keyboard.KeyboardEvent
 import zoned.framework.interop.closestForm
 import zoned.framework.interop.css
 import zoned.framework.interop.cssClassWithHover
+import zoned.framework.interop.encodeURIComponent
 import zoned.framework.interop.execCommand
+import zoned.framework.libs.Tribute
+import zoned.framework.libs.TributeItem
+import zoned.framework.libs.TributeOptions
 
 /**
  * Sanitize HTML to be valid XHTML (self-closing tags)
@@ -219,7 +226,120 @@ fun TagConsumer<HTMLElement>.initWysiwygEnhancement(config: WysiwygConfig, child
         }
     }
 
+    // Initialize Tribute for @mentions if configured
+    config.mentionConfig?.let { mentionConfig ->
+        initTribute(editorRef.element, mentionConfig)
+    }
+
     console.log("WYSIWYG editor initialized")
+}
+
+/**
+ * Initialize Tribute.js @mention autocomplete on the editor element
+ */
+private fun initTribute(editorElement: HTMLElement, config: MentionConfig) {
+    val tributeOptions: TributeOptions = unsafeJso {
+        trigger = config.trigger
+        lookup = "key"
+        fillAttr = "value"
+        allowSpaces = false  // Don't continue matching after space
+        requireLeadingSpace = true
+        replaceTextSuffix = " "
+        autocompleteMode = false  // Only activate on trigger character
+        menuShowMinLength = 0
+
+        // Async value lookup via fetch
+        values = { text: String, callback: (Array<TributeItem>) -> Unit ->
+            val url = "${config.searchEndpoint}?q=${encodeURIComponent(text)}"
+
+            window.fetch(url)
+                .then { response ->
+                    response.json().then { data ->
+                        @Suppress("UNCHECKED_CAST")
+                        callback(data as Array<TributeItem>)
+                    }
+                }
+                .catch { err ->
+                    console.error("Mention search failed:", err)
+                    callback(emptyArray())
+                }
+            Unit
+        }
+
+        // Template for inserted mention - styled span with data attribute
+        // Using contenteditable=false to prevent cursor from entering the span
+        selectTemplate = { item ->
+            buildString {
+                appendHTML().span(config.mentionClass) {
+                    attributes["contenteditable"] = "false"
+                    attributes["data-user-id"] = item.original.value
+                    +"@${item.original.key}"
+                }
+            }
+        }
+
+        // Template for menu items with styling
+        menuItemTemplate = { item ->
+            buildString {
+                appendHTML().span("tribute-item") {
+                    style = "display:block;padding:8px 12px;cursor:pointer;"
+                    +item.original.key
+                }
+            }
+        }
+
+        // No match message - return empty to hide menu when no matches
+        noMatchTemplate = { "" }
+
+        // Container styling
+        containerClass = "tribute-container"
+    }
+
+    try {
+        Tribute(tributeOptions).attach(editorElement)
+        injectTributeStyles()
+        console.log("Tribute @mention initialized")
+    } catch (e: Throwable) {
+        console.error("Failed to initialize Tribute:", e)
+    }
+}
+
+/** Inject the Tribute menu stylesheet once per page, no matter how many editors mount. */
+private var tributeStylesInjected = false
+
+private fun injectTributeStyles() {
+    if (tributeStylesInjected) return
+    tributeStylesInjected = true
+
+    val style = document.createElement("style")
+    style.textContent = """
+            .tribute-container {
+                background: #1f2937;
+                border: 1px solid #4b5563;
+                border-radius: 8px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+                max-height: 200px;
+                overflow-y: auto;
+                z-index: 1000;
+            }
+            .tribute-container ul {
+                list-style: none;
+                margin: 0;
+                padding: 4px 0;
+            }
+            .tribute-container li {
+                color: #e5e7eb;
+            }
+            .tribute-container li:hover,
+            .tribute-container li.highlight {
+                background: #374151;
+            }
+            .mention {
+                color: #60a5fa;
+                font-weight: 500;
+            }
+        """.trimIndent()
+    document.head.appendChild(style)
 }
 
 /**

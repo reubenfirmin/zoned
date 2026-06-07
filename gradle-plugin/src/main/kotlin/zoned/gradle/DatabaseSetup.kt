@@ -19,6 +19,7 @@ class DatabaseSetup(val logger: Logger) {
         val config = org.flywaydb.core.api.configuration.FluentConfiguration()
             .dataSource(dataSource)
             .cleanDisabled(cleanDisabled)
+            .mixed(true)  // Allow mixing transactional and non-transactional statements (needed for SQLite PRAGMA)
 
         if (path != null) {
             // TODO will this work with jar deploys??

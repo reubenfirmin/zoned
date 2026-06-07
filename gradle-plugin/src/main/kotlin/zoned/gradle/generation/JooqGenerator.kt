@@ -1,6 +1,7 @@
 package zoned.gradle.generation
 
 import org.gradle.api.DefaultTask
+import org.gradle.work.DisableCachingByDefault
 import org.gradle.api.tasks.TaskAction
 import org.jooq.codegen.GenerationTool
 import org.jooq.meta.jaxb.*
@@ -8,6 +9,7 @@ import zoned.gradle.Config
 import zoned.gradle.DatabaseSetup
 import java.io.File
 
+@DisableCachingByDefault(because = "Generates jOOQ sources from a live database")
 open class JooqGenerator : DefaultTask() {
 
     @TaskAction

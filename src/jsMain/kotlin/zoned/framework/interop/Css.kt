@@ -5,6 +5,7 @@ import kotlinx.html.CommonAttributeGroupFacade
 import kotlinx.html.classes
 import kotlinx.html.style
 import web.cssom.ClassName
+import web.dom.ElementId
 import web.dom.document
 import web.html.HTMLElement
 import web.html.HTMLStyleElement
@@ -43,6 +44,54 @@ fun HTMLElement.css(block: CssBuilder.() -> Unit) {
 
 fun HTMLElement.classes(classes: String) {
     this.className = ClassName(classes.trim().split(Regex("\\s+")).distinct().joinToString(" "))
+}
+
+/**
+ * Typed stylesheet injection — the rule-based companion to [css].
+ *
+ * [css] only writes an element's inline `style`, so it cannot express selectors, pseudo-classes
+ * (`:hover`), or descendant selectors. [styleSheet] emits real CSS *rules* whose declarations are
+ * built from typed kotlin-css [CssBuilder] blocks. The selector is a string (CSS selectors are
+ * inherently strings); everything inside the braces stays typed.
+ *
+ * Rules go into a single `<style id="...">` in `<head>`; calling again with the same [id] REPLACES
+ * its contents, so it is safe to call on every render or to refresh after a theme change.
+ *
+ * ```
+ * styleSheet("tdz-task") {
+ *     rule(".tdz-task:hover") { backgroundColor = theme.taskHover }
+ *     rule(".ace_editor .ace_heading") { color = theme.heading; fontWeight = FontWeight.bold }
+ *     raw("@font-face { font-family: 'IBM VGA 8x16'; src: url('/vga.woff') format('woff'); }")
+ * }
+ * ```
+ */
+fun styleSheet(id: String, block: StyleSheetScope.() -> Unit) {
+    val css = StyleSheetScope().apply(block).render()
+    val elementId = ElementId(id)
+    val style = (document.getElementById(elementId) as? HTMLStyleElement)
+        ?: (document.createElement("style") as HTMLStyleElement).also {
+            it.id = elementId
+            document.head.appendChild(it)
+        }
+    style.textContent = css
+}
+
+/** Receiver for [styleSheet]: collects typed selector rules, plus a [raw] escape for at-rules. */
+class StyleSheetScope internal constructor() {
+    private val sb = StringBuilder()
+
+    /** A CSS rule for [selector] whose declarations are typed kotlin-css. */
+    fun rule(selector: String, block: CssBuilder.() -> Unit) {
+        val body = CssBuilder().apply(block).toString().removeSuffix("\n").trim()
+        if (body.isNotEmpty()) sb.append(selector).append(" { ").append(body).append(" }\n")
+    }
+
+    /** Escape hatch for at-rules / properties kotlin-css can't model (@font-face, background-clip: text, …). */
+    fun raw(css: String) {
+        sb.append(css).append('\n')
+    }
+
+    internal fun render(): String = sb.toString()
 }
 
 var counter = 0

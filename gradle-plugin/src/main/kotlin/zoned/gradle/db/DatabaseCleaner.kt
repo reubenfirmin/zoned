@@ -1,11 +1,13 @@
 package zoned.gradle.db
 
 import org.gradle.api.DefaultTask
+import org.gradle.work.DisableCachingByDefault
 import org.gradle.api.tasks.TaskAction
 import zoned.gradle.DatabaseSetup
 import java.sql.Connection
 
 // TODO this is only because flyway clean isn't working...
+@DisableCachingByDefault(because = "Mutates external database state")
 open class DatabaseCleaner : DefaultTask() {
 
     @TaskAction
