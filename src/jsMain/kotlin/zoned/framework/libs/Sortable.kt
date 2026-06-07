@@ -9,7 +9,21 @@ import web.geometry.DOMRect
 @JsName("default")
 external object Sortable {
     fun create(el: Element, options: SortableOptions)
+    /** Register a plugin (e.g. MultiDrag) on the shared Sortable singleton. */
+    fun mount(vararg plugins: Any)
+    val utils: SortableUtils
 }
+
+/** Sortable.utils helpers exposed by the library. */
+external interface SortableUtils {
+    /** Programmatically add [el] to the MultiDrag selection. */
+    fun select(el: Element)
+    /** Programmatically remove [el] from the MultiDrag selection. */
+    fun deselect(el: Element)
+}
+
+/** The MultiDrag plugin (named export of sortablejs); pass an instance to [Sortable.mount]. */
+external class MultiDrag(options: dynamic = definedExternally)
 
 external interface DragEvent {
     val item: Element
@@ -37,6 +51,8 @@ external interface SortableEvent {
     val newDraggableIndex: Int
     val clone: Element
     val pullMode: String?
+    /** All dragged elements when the MultiDrag plugin is active (else absent). */
+    val items: Array<Element>
 }
 
 /**
@@ -77,6 +93,11 @@ external interface SortableOptions {
     var dragoverBubble: Boolean?
     var removeCloneOnHide: Boolean?
     var emptyInsertThreshold: Int?
+    // MultiDrag plugin options (only honoured when the plugin is mounted).
+    var multiDrag: Boolean?
+    var selectedClass: String?
+    var multiDragKey: String?
+    var avoidImplicitDeselect: Boolean?
     var onChoose: ((event: SortableEvent) -> Unit)?
     var onUnchoose: ((event: SortableEvent) -> Unit)?
     var onStart: ((event: SortableEvent) -> Unit)?

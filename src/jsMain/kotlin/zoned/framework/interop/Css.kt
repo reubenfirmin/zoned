@@ -1,6 +1,8 @@
 package zoned.framework.interop
 
+import kotlinx.css.Color
 import kotlinx.css.CssBuilder
+import kotlinx.css.LinearDimension
 import kotlinx.html.CommonAttributeGroupFacade
 import kotlinx.html.classes
 import kotlinx.html.style
@@ -19,6 +21,46 @@ import web.html.asStringOrNull
 fun CommonAttributeGroupFacade.css(block: CssBuilder.() -> Unit) {
     style = CssBuilder().apply(block).toString().removeSuffix("\n")
 }
+
+/**
+ * Low-level primitive for emitting a single declaration kotlin-css does not model — [property] is the
+ * kebab-case CSS name, [value] the verbatim value. This is the building block for the *typed*
+ * extensions below (vendor prefixes, `!important`); prefer those, or a kotlin-css property, over
+ * calling [raw] directly. Add a new typed extension here whenever a property is worth typing.
+ */
+fun CssBuilder.raw(property: String, value: String) {
+    declarations[property] = value
+}
+
+// --- Typed extensions for CSS that kotlin-css doesn't model -------------------------------------
+// kotlin-css has no vendor-prefixed properties and no `!important`. Rather than scatter raw strings
+// at call sites, model them here as typed extensions so callers stay in the css {} / rule {} DSL.
+
+/** `-webkit-text-stroke`: a hairline outline painted on glyph edges (monochrome display headings). */
+fun CssBuilder.webkitTextStroke(width: LinearDimension, color: Color) =
+    raw("-webkit-text-stroke", "$width $color")
+
+/**
+ * `background-clip: text` plus the `-webkit-` prefix Chromium still requires — clips the element's
+ * background (e.g. a gradient) to its glyph shapes. Pair with a transparent [webkitTextFillColor].
+ */
+fun CssBuilder.backgroundClipText() {
+    raw("-webkit-background-clip", "text")
+    raw("background-clip", "text")
+}
+
+/**
+ * `-webkit-text-fill-color`: the colour painted inside glyphs, overriding `color` (set transparent to
+ * reveal a background clipped via [backgroundClipText]).
+ */
+fun CssBuilder.webkitTextFillColor(color: Color) = raw("-webkit-text-fill-color", "$color")
+
+/** Set [property] to [value] with `!important`, for the rare rule that must beat a more specific one. */
+fun CssBuilder.important(property: String, value: Any) = raw(property, "$value !important")
+
+/** `transform-origin` — the pivot point for `transform` (kotlin-css models `transform` but not its
+ *  origin). [value] is a CSS origin such as `"center center"`, `"top left"`, or `"50% 50%"`. */
+fun CssBuilder.transformOrigin(value: String) = raw("transform-origin", value)
 
 /**
  * Sets inline styles on an HTMLElement.
