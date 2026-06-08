@@ -33,6 +33,8 @@ object Router {
                 }
             }
 
+            route.metadata.title?.let { document.title = it(Params(params)) }
+
             console.log("Navigating to ${window.location.pathname}")
         } ?: notFound(path)
     }

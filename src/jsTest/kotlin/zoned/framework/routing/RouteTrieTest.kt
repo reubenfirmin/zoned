@@ -49,4 +49,13 @@ class RouteTrieTest {
         // (it must NOT be reinterpreted as a canvas named "help").
         assertNull(RouteTrie.findRoute("/help"))
     }
+
+    @Test
+    fun `title metadata computes document title from params`() {
+        val route = RouteCreator.addRoute("/help/{topic}", handler = noop())
+            .title { p -> "Help: ${p["topic"]}" }
+        val title = route.metadata.title
+        assertNotNull(title)
+        assertEquals("Help: shortcuts", title(Params(mapOf("topic" to "shortcuts"))))
+    }
 }
