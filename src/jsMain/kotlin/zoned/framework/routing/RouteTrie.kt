@@ -14,6 +14,11 @@ object RouteTrie {
 
     private val root = RootNode()
 
+    /** Reset all registered routes. Intended for test isolation. */
+    internal fun clear() {
+        root.children.clear()
+    }
+
     fun addRoute(route: Route) {
         var current: TrieNode = root
 
@@ -43,6 +48,12 @@ object RouteTrie {
         current.children.add(RouteNode(route))
     }
 
+    /**
+     * Matches [path] using static → parameter → wildcard priority.
+     * This trie does **not** backtrack: once a static segment is matched, the search continues
+     * only within that subtree. A path that partially matches a static prefix but has no terminal
+     * route returns null, even if a sibling wildcard would otherwise match the full path.
+     */
     fun findRoute(path: String): Pair<Route, Map<String, String>>? {
         var current: TrieNode = root
         val segments = path.split("/").filter { it.isNotEmpty() }
@@ -52,29 +63,33 @@ object RouteTrie {
         while (segmentIndex < segments.size) {
             val segment = segments[segmentIndex]
 
-            // Check for wildcard first (it captures all remaining segments)
+            // 1. Static match (most specific) wins.
+            val staticChild = current.children.find { it is StringNode && it.value == segment }
+            if (staticChild != null) {
+                current = staticChild
+                segmentIndex++
+                continue
+            }
+
+            // 2. Then a single-segment parameter.
+            val paramChild = current.children.find { it is ParamNode }
+            if (paramChild != null) {
+                params[(paramChild as ParamNode).paramName] = segment
+                current = paramChild
+                segmentIndex++
+                continue
+            }
+
+            // 3. Finally fall back to a wildcard, which consumes the rest of the path.
             val wildcardChild = current.children.find { it is WildcardNode }
             if (wildcardChild != null) {
-                current = wildcardChild
                 val remainingSegments = segments.subList(segmentIndex, segments.size)
                 params[(wildcardChild as WildcardNode).paramName] = remainingSegments.joinToString("/")
-                break  // Wildcard consumes rest of path
+                current = wildcardChild
+                break
             }
 
-            // Otherwise try to match single segment
-            current = current.children.find { child ->
-                when (child) {
-                    is StringNode -> child.value == segment
-                    is ParamNode -> true
-                    else -> false
-                }
-            } ?: return null
-
-            if (current is ParamNode) {
-                params[current.paramName] = segment
-            }
-
-            segmentIndex++
+            return null
         }
 
         // After processing all segments, check if we've reached a RouteNode
