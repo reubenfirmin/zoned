@@ -63,6 +63,15 @@ fun CssBuilder.important(property: String, value: Any) = raw(property, "$value !
  *  origin). [value] is a CSS origin such as `"center center"`, `"top left"`, or `"50% 50%"`. */
 fun CssBuilder.transformOrigin(value: String) = raw("transform-origin", value)
 
+/**
+ * `contain-intrinsic-size` — the placeholder size used while a `content-visibility: auto` subtree
+ * is skipped (kotlin-css models content-visibility but not this). With [rememberRendered] the
+ * browser substitutes the element's actual last-rendered size once it has been shown, so scrollbar
+ * geometry stays stable; [estimate] only covers the first, never-yet-rendered pass.
+ */
+fun CssBuilder.containIntrinsicSize(estimate: LinearDimension, rememberRendered: Boolean = true) =
+    raw("contain-intrinsic-size", if (rememberRendered) "auto $estimate" else "$estimate")
+
 // --- filter ---------------------------------------------------------------------------------
 // kotlin-css types its `filter` property only as a raw String. Model the filter FUNCTIONS so call
 // sites keep typed dimensions/colors — filter(brightness(1.4), dropShadow(0.px, 0.px, 10.px, c)) —

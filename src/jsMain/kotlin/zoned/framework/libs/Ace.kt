@@ -1,33 +1,43 @@
 package zoned.framework.libs
 
 import js.objects.unsafeJso
+import kotlin.js.Promise
 import web.keyboard.KeyboardEvent
 
-@JsModule("ace-builds/src-noconflict/ace")
-@JsNonModule
-@JsName("ace")
-external object Ace {
+/** The Ace module's surface (the static `ace` object the UMD bundle exports). */
+external interface AceModule {
     fun edit(id: String): AceEditor
 }
 
-// Ace lazy-loads themes/modes/workers at runtime; without help it fetches them from the
-// server root (e.g. /theme-monokai.js), which 404s under a bundler. The webpack resolver
-// registers webpack-bundled URLs for every theme/mode/worker (via ace.config.setModuleUrl,
-// using the file-loader npm dep). Importing it for its side effects is enough.
-@JsModule("ace-builds/webpack-resolver")
-@JsNonModule
-external val aceWebpackResolver: dynamic
+private var aceModule: AceModule? = null
 
-private var aceResolverReady = false
-
-/** Ensure Ace resolves theme/mode/worker assets via webpack (not server-root 404s). Call before [Ace.edit]. */
-fun ensureAceResolver() {
-    if (aceResolverReady) return
-    // Touch the module so it isn't tree-shaken and its setModuleUrl side effects run.
-    @Suppress("UNUSED_EXPRESSION")
-    aceWebpackResolver
-    aceResolverReady = true
+/**
+ * Load Ace ON DEMAND — a dynamic `import()`, so webpack splits Ace out of the main bundle and
+ * nobody pays its parse cost until an editor actually opens. Also loads the webpack resolver that
+ * registers bundled URLs for Ace's runtime-fetched themes/modes/workers (without it Ace fetches
+ * them from the server root and 404s). Cached: later calls resolve immediately.
+ */
+fun loadAce(): Promise<AceModule> {
+    aceModule?.let { return Promise.resolve(it) }
+    // The resolver import is side-effect-only and must run after ace itself; chain in raw JS so
+    // the nested promise flattens naturally, then type the result at the boundary.
+    val loading = js(
+        "import('ace-builds/src-noconflict/ace')" +
+            ".then(function(m){ return import('ace-builds/webpack-resolver').then(function(){ return m; }); })"
+    ).unsafeCast<Promise<dynamic>>()
+    return loading.then<AceModule> { m ->
+        val ace = unwrapModule(m, probe = "edit").unsafeCast<AceModule>()
+        aceModule = ace
+        ace
+    }
 }
+
+/**
+ * A dynamic `import()` of a UMD/CJS module surfaces its exports either directly on the namespace
+ * or under `default`, depending on bundler interop — [probe] picks whichever side carries the API.
+ */
+internal fun unwrapModule(m: dynamic, probe: String): dynamic =
+    if (m[probe] != undefined) m else m.default
 
 external interface AceEditor {
     fun on(event: String, cb: (delta: AceDelta) -> Unit)
