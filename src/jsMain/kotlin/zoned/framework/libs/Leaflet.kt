@@ -1,10 +1,10 @@
 package zoned.framework.libs
 
+import kotlin.js.Promise
 import web.dom.Element
 
-@JsModule("leaflet")
-@JsNonModule
-external object Leaflet {
+/** The Leaflet module surface (the `L` object). */
+external interface LeafletModule {
     fun map(elementId: String, options: dynamic = definedExternally): LeafletMap
     fun map(element: Element, options: dynamic = definedExternally): LeafletMap
 
@@ -15,6 +15,26 @@ external object Leaflet {
     fun geoJSON(geojson: dynamic, options: GeoJSONOptions = definedExternally): LeafletGeoJSON
 
     fun control(options: dynamic = definedExternally): LeafletControl
+}
+
+private var leafletModule: LeafletModule? = null
+
+/**
+ * Load Leaflet (and its stylesheet) ON DEMAND — dynamic `import()`s, so webpack splits both out of
+ * the main bundle and a session with no map on screen never fetches them. Replaces the old eager
+ * `initLeaflet()` startup hook. Cached after first load.
+ */
+fun loadLeaflet(): Promise<LeafletModule> {
+    leafletModule?.let { return Promise.resolve(it) }
+    val loading = js(
+        "Promise.all([import('leaflet'), import('leaflet/dist/leaflet.css')])" +
+            ".then(function(r){ return r[0]; })"
+    ).unsafeCast<Promise<dynamic>>()
+    return loading.then<LeafletModule> { m ->
+        val leaflet = unwrapModule(m, probe = "map").unsafeCast<LeafletModule>()
+        leafletModule = leaflet
+        leaflet
+    }
 }
 
 external interface TileLayerOptions {
@@ -65,12 +85,3 @@ external interface LeafletMap {
     fun remove(): LeafletMap
 }
 
-/**
- * Initialize Leaflet by importing its CSS
- * Call this once during app initialization
- */
-fun initLeaflet() {
-    require("leaflet/dist/leaflet.css")
-}
-
-external fun require(module: String): dynamic
