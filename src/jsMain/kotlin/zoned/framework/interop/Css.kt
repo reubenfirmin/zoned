@@ -3,6 +3,7 @@ package zoned.framework.interop
 import kotlinx.css.Color
 import kotlinx.css.CssBuilder
 import kotlinx.css.LinearDimension
+import kotlinx.css.filter
 import kotlinx.html.CommonAttributeGroupFacade
 import kotlinx.html.classes
 import kotlinx.html.style
@@ -61,6 +62,26 @@ fun CssBuilder.important(property: String, value: Any) = raw(property, "$value !
 /** `transform-origin` — the pivot point for `transform` (kotlin-css models `transform` but not its
  *  origin). [value] is a CSS origin such as `"center center"`, `"top left"`, or `"50% 50%"`. */
 fun CssBuilder.transformOrigin(value: String) = raw("transform-origin", value)
+
+// --- filter ---------------------------------------------------------------------------------
+// kotlin-css types its `filter` property only as a raw String. Model the filter FUNCTIONS so call
+// sites keep typed dimensions/colors — filter(brightness(1.4), dropShadow(0.px, 0.px, 10.px, c)) —
+// and let the helper assign kotlin-css's own property with the composed value.
+
+/** One CSS filter function (see [blur]/[brightness]/[dropShadow]); composes via [filter]. */
+class FilterFunction internal constructor(private val css: String) {
+    override fun toString() = css
+}
+
+fun blur(radius: LinearDimension) = FilterFunction("blur($radius)")
+fun brightness(factor: Number) = FilterFunction("brightness($factor)")
+fun dropShadow(x: LinearDimension, y: LinearDimension, blur: LinearDimension, color: Color) =
+    FilterFunction("drop-shadow($x $y $blur $color)")
+
+/** `filter` from typed [FilterFunction]s, space-joined per the spec. */
+fun CssBuilder.filter(vararg functions: FilterFunction) {
+    filter = functions.joinToString(" ")
+}
 
 /**
  * Sets inline styles on an HTMLElement.
