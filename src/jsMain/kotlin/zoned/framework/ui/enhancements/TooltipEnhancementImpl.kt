@@ -66,7 +66,8 @@ private object TooltipManager {
     private var tooltipElement: HTMLElement? = null
 
     private fun getOrCreateTooltip(): HTMLElement {
-        tooltipElement?.let { return it }
+        // A full-page render can clear <body>, detaching the cached element — recreate if so.
+        tooltipElement?.takeIf { it.isConnected }?.let { return it }
 
         // Create tooltip element directly (not via Ref which has async binding)
         val tip = document.createElement("div") as HTMLElement
@@ -96,9 +97,11 @@ private object TooltipManager {
         tip.textContent = text
         tip.style.opacity = "1"
 
-        // Position after making visible so we can measure
+        // Position after making visible so we can measure. The trigger can be swapped out of the
+        // DOM between mouseenter and this frame — a detached rect is all zeros, which would pin
+        // the tooltip to the viewport corner.
         window.requestAnimationFrame {
-            positionTooltip(tip, trigger, position)
+            if (trigger.isConnected) positionTooltip(tip, trigger, position) else hide()
         }
     }
 

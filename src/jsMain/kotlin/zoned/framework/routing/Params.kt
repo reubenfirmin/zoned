@@ -21,4 +21,14 @@ class Params(private val map: Map<String, String> = emptyMap()) {
 
     fun boolean(key: String): Boolean = required(key).toBooleanStrictOrNull()
         ?: throw IllegalArgumentException("Parameter '$key' is not a valid boolean")
+
+    fun double(key: String): Double = required(key).toDoubleOrNull()
+        ?: throw IllegalArgumentException("Parameter '$key' is not a valid double")
+
+    // Optional typed variants: absent OR malformed reads as null (use the throwing forms when the
+    // route pattern guarantees presence and a bad value is a programming error).
+    fun intOrNull(key: String): Int? = map[key]?.toIntOrNull()
+    fun longOrNull(key: String): Long? = map[key]?.toLongOrNull()
+    fun doubleOrNull(key: String): Double? = map[key]?.toDoubleOrNull()
+    fun booleanOrNull(key: String): Boolean? = map[key]?.toBooleanStrictOrNull()
 }

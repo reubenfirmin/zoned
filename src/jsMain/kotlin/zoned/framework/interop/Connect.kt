@@ -37,3 +37,21 @@ fun addToBody(block: TagConsumer<HTMLElement>.() -> Unit) {
     val body = document.body ?: error("document.body not available")
     ElementTrackingConsumer(body).block()
 }
+
+/**
+ * Rebuild this element from scratch, preserving its position among its siblings. The old element
+ * is detached BEFORE [block] runs, so id-based lookups (e.g. inside onMount handlers) resolve to
+ * the replacement rather than the outgoing element; the replacement is then moved into the old
+ * slot. Returns the new element, or null if this element has no parent.
+ *
+ * NOTE: the final positioning move blurs any focused descendant — callers rebuilding a focusable
+ * control should re-focus it afterwards.
+ */
+fun HTMLElement.rebuildInPlace(block: TagConsumer<HTMLElement>.() -> HTMLElement): HTMLElement? {
+    val parent = parentElement as? HTMLElement ?: return null
+    val next = nextSibling
+    parent.removeChild(this)
+    val replacement = ElementTrackingConsumer(parent).block()
+    parent.insertBefore(replacement, next)
+    return replacement
+}

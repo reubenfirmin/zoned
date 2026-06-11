@@ -21,7 +21,7 @@ object Debugger {
             profileMarkerStart(s)
             console.log("%c $s", when (logType) {
                 null -> ""
-                else -> "background: #${logType.backgroundColor}; #{${logType.textColor} [${logType.name}] "
+                else -> "background: ${logType.backgroundColor}; color: ${logType.textColor};"
             })
             setTimeout({ profileMarkerEnd(s) }, 100)
         }

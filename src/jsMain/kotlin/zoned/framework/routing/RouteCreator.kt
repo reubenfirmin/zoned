@@ -5,20 +5,20 @@ import web.html.HTMLElement
 
 object RouteCreator {
 
-    fun addRoute(
+    /**
+     * Parse [path] into a [Route] (a [FragmentRoute] when [target] is given) WITHOUT registering
+     * it — [Routes] collections are mounted explicitly via [Router.mount]/[Router.start].
+     */
+    fun build(
         path: String,
         target: Zone? = null,
         parent: Route? = null,
         mode: RenderMode = RenderMode.FULL_PAGE,
         handler: TagConsumer<HTMLElement>.(Params) -> Any
     ): Route {
-        val fullPath = if (parent != null) {
-            parent.segments.toPath() + "/" + path
-        } else {
-            path
-        }
+        require(parent == null || target != null) { "Target must be specified along with parent" }
 
-        val segments = fullPath.split("/").filter {
+        val segments = path.split("/").filter {
             it.isNotEmpty()
         }.map { segment ->
             when {
@@ -33,13 +33,22 @@ object RouteCreator {
                 }
             }
         }
-        val route = Route(fullPath, segments, mode, handler)
-        if (parent != null) {
-            require(target != null) {"Target must be specified along with parent"}
-            RouteTrie.addRoute(FragmentRoute(route.pattern, segments, mode, handler, parent, target))
+        return if (target != null) {
+            FragmentRoute(path, segments, mode, handler, parent, target)
         } else {
-            RouteTrie.addRoute(route)
+            Route(path, segments, mode, handler)
         }
-        return route
     }
+
+    /**
+     * Build AND immediately register a standalone route (no collection). The escape hatch for
+     * prototypes and tests; apps composed of [Routes] collections should mount via [Router.start].
+     */
+    fun addRoute(
+        path: String,
+        target: Zone? = null,
+        parent: Route? = null,
+        mode: RenderMode = RenderMode.FULL_PAGE,
+        handler: TagConsumer<HTMLElement>.(Params) -> Any
+    ): Route = build(path, target, parent, mode, handler).also(RouteTrie::addRoute)
 }

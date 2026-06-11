@@ -1,5 +1,7 @@
 package zoned.framework.routing
 
+import zoned.framework.interop.decodeURIComponent
+
 object RouteTrie {
 
     private sealed class TrieNode {
@@ -18,6 +20,8 @@ object RouteTrie {
     internal fun clear() {
         root.children.clear()
     }
+
+    fun isEmpty(): Boolean = root.children.isEmpty()
 
     fun addRoute(route: Route) {
         var current: TrieNode = root
@@ -56,7 +60,9 @@ object RouteTrie {
      */
     fun findRoute(path: String): Pair<Route, Map<String, String>>? {
         var current: TrieNode = root
-        val segments = path.split("/").filter { it.isNotEmpty() }
+        // The browser hands us percent-encoded pathnames; routes are declared (and params consumed)
+        // in decoded form, so decode once at the boundary.
+        val segments = path.split("/").filter { it.isNotEmpty() }.map { decodeURIComponent(it) }
         val params = mutableMapOf<String, String>()
 
         var segmentIndex = 0

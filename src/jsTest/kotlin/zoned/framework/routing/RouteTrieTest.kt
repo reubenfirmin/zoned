@@ -59,3 +59,32 @@ class RouteTrieTest {
         assertEquals("Help: shortcuts", title(Params(mapOf("topic" to "shortcuts"))))
     }
 }
+
+class RouteTrieEncodingTest {
+
+    @BeforeTest fun setup() = RouteTrie.clear()
+    @AfterTest fun teardown() = RouteTrie.clear()
+
+    private fun noop(): TagConsumerHandler = { _ -> Unit }
+
+    @Test
+    fun encodedStaticSegmentsMatchTheirDecodedRoute() {
+        RouteCreator.addRoute("/docs/c++", handler = noop())
+        assertNotNull(RouteTrie.findRoute("/docs/c%2B%2B"),
+            "browser-encoded path must match the route declared with the literal segment")
+    }
+
+    @Test
+    fun encodedParamValuesAreDecoded() {
+        RouteCreator.addRoute("/u/{name}", handler = noop())
+        val (_, params) = RouteTrie.findRoute("/u/J%C3%BCrgen")!!
+        assertEquals("Jürgen", params["name"], "param values reach the handler decoded")
+    }
+
+    @Test
+    fun encodedWildcardSegmentsAreDecoded() {
+        RouteCreator.addRoute("/b/{path...}", handler = noop())
+        val (_, params) = RouteTrie.findRoute("/b/my%20board/sub")!!
+        assertEquals("my board/sub", params["path"], "wildcard captures reach the handler decoded")
+    }
+}

@@ -34,6 +34,11 @@ data class SortableConfig(
     // Fired once the drag actually starts (mirror + placeholder exist); the dragged element is
     // passed so callers can decorate the drag visuals.
     val onStart: ((Element) -> Unit)? = null,
+    // Per-relocation veto: Sortable calls this every time it wants to move its placeholder within
+    // (or into) this container; return false to cancel — the placeholder stays put and the layout
+    // does not reflow. Lets callers freeze sorting while a drop is routed elsewhere (e.g. an
+    // overlay/portal target is active) without disabling the drag itself.
+    val onMove: ((MoveEvent) -> Boolean)? = null,
     val onEnd: (SortableDropEvent) -> Unit
 )
 
@@ -92,6 +97,7 @@ fun makeSortable(config: SortableConfig) {
         }
         config.onChoose?.let { cb -> onChoose = { event -> cb(event.item) } }
         config.onStart?.let { cb -> onStart = { event -> cb(event.item) } }
+        config.onMove?.let { cb -> onMove = { event -> cb(event) } }
         onEnd = { event ->
             config.onEnd(SortableDropEvent(
                 itemId = event.item.id,

@@ -39,7 +39,13 @@ abstract class BuildStyleTask @Inject constructor(
         val jvmCss = projectDir.file("src/jvmMain/resources/style.css")
         val jsCss = projectDir.file("src/jsMain/resources/style.css")
         inputCssFile.convention(if (jvmCss.asFile.exists()) jvmCss else jsCss)
-        configFile.convention(projectDir.file("tailwind.config.js"))
+        // Only point at tailwind.config.js when it exists: @Optional allows an UNSET property, but
+        // a set-by-convention path to a missing file still fails Gradle's input validation at
+        // configuration time — before execute() could skip — breaking typed-CSS-only projects.
+        val tailwindConfig = projectDir.file("tailwind.config.js")
+        if (tailwindConfig.asFile.exists()) {
+            configFile.convention(tailwindConfig)
+        }
         outputFile.convention(projectDir.file("dist/output.css"))
         librarySrcDir.convention(layout.buildDirectory.dir("tmp/library-src"))
 
@@ -49,6 +55,12 @@ abstract class BuildStyleTask @Inject constructor(
 
     @TaskAction
     fun execute() {
+        // Apps with fully-typed styling (css{} + styleSheet{}) have no tailwind.config.js — the
+        // style step is a no-op for them, so watch scripts / CI can invoke build-style universally.
+        if (!configFile.isPresent) {
+            logger.lifecycle("build-style: no tailwind.config.js — skipping (typed-CSS-only project)")
+            return
+        }
         setupNpxTask()
         setupTailwind()
         npxTask.exec()

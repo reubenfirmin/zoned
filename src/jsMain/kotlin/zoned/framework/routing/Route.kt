@@ -34,10 +34,27 @@ open class Route(
 
     val metadata = RouteMetadata()
 
-    fun path(vararg params: String): String {
-        val paramSegments = segments.filterIsInstance<RouteSegment.Parameter>()
+    /** The collection this route was declared in, or null for standalone routes. */
+    internal var owner: Routes<*>? = null
 
-        require(params.size == paramSegments.size) { "Expected ${paramSegments.size} parameters, but got ${params.size}." }
+    /**
+     * A typed link to an unmounted collection is a programming error (the route would 404), so it
+     * fails here — at first link render — with the fix in the message, instead of silently.
+     */
+    private fun checkMounted() {
+        val collection = owner ?: return   // standalone routes register immediately; nothing to check
+        check(collection.mounted) {
+            "Route '$pattern' belongs to a Routes collection that was never passed to Router.start()/mount()"
+        }
+    }
+
+    fun path(vararg params: String): String {
+        checkMounted()
+        // Wildcards consume an argument too — counting only Parameters would reject every call
+        // on a wildcard route (and index out of bounds on a zero-arg one).
+        val fillable = segments.count { it !is RouteSegment.Static }
+
+        require(params.size == fillable) { "Expected $fillable parameters, but got ${params.size}." }
         var paramIdx = 0
         return segments.joinToString("/", prefix = "/") { segment ->
             when (segment) {
@@ -49,6 +66,7 @@ open class Route(
     }
 
     fun path(params: Map<String, String>): String {
+        checkMounted()
         return segments.joinToString("/", prefix = "/") { segment ->
             when (segment) {
                 is RouteSegment.Static -> segment.value
@@ -66,7 +84,13 @@ open class Route(
     }
 }
 
-class FragmentRoute(pattern: String, segments: List<RouteSegment>, mode: RenderMode, handler: TagConsumer<HTMLElement>.(Params) -> Any, val parent: Route, val target: Zone):
+/**
+ * A route that renders into a declared [target] zone instead of the body: the router clears just
+ * that zone and builds the handler's content into it (htmx-style swap). [parent] is optional — it
+ * prefixes the path and, on a cold load (deep link) where the zone isn't in the DOM yet, is
+ * rendered first to create it.
+ */
+class FragmentRoute(pattern: String, segments: List<RouteSegment>, mode: RenderMode, handler: TagConsumer<HTMLElement>.(Params) -> Any, val parent: Route?, val target: Zone):
     Route(pattern, segments, mode, handler)
 
 /**
