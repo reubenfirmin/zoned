@@ -79,6 +79,17 @@ fun CssBuilder.transformOrigin(value: String) = raw("transform-origin", value)
  * element.style.opacity = "1"
  * ```
  */
+/*
+ * WHICH STYLING PRIMITIVE TO USE — the framework's decision rule:
+ *
+ *  - `css {}` (inline style, on a tag or element): values that differ PER INSTANCE — geometry,
+ *    per-item conditionals, theme tokens applied to one element.
+ *  - `styleSheet(id) { rule()/raw() }`: rules SHARED across instances, or anything needing a
+ *    selector — pseudo-classes (:hover, :empty), descendant selectors, @keyframes. Re-calling
+ *    with the same id replaces the rules, so refresh freely on theme changes.
+ *  - `element.style.*` mutation: DYNAMIC runtime geometry on a live element (drag positions,
+ *    focus highlights) where rebuilding inline style wholesale would clobber sibling values.
+ */
 fun HTMLElement.css(block: CssBuilder.() -> Unit) {
     val style = CssBuilder().apply(block)
     this.setAttribute("style", style.toString().removeSuffix("\n"))
@@ -136,14 +147,17 @@ class StyleSheetScope internal constructor() {
     internal fun render(): String = sb.toString()
 }
 
-var counter = 0
+private var cssClassCounter = 0
 
 /**
  * Creates a class and attaches it to the head. Sets the current element's classname either to something specific if supplied,
  * or a generated value.
- * According to the video above, this is not as performant as inlining styles, or tailwind.
+ *
+ * NOT idempotent: every call appends to the head's first <style> tag, so calling this from a
+ * re-rendering code path grows the stylesheet without bound. For reusable/refreshable rules use
+ * [styleSheet] (same id replaces). This exists for one-shot static chrome.
  */
-fun CommonAttributeGroupFacade.cssClass(className: String = "clzz${counter++}", block: CssBuilder.() -> Unit) {
+fun CommonAttributeGroupFacade.cssClass(className: String = "clzz${cssClassCounter++}", block: CssBuilder.() -> Unit) {
     val rawCss = CssBuilder().apply(block).toString()
     val formattedCss = rawCss.split(";")
         .map { it.trim() }
@@ -180,7 +194,7 @@ fun CommonAttributeGroupFacade.cssClass(className: String = "clzz${counter++}", 
  * ```
  */
 fun CommonAttributeGroupFacade.cssClassWithHover(
-    className: String = "clzz${counter++}",
+    className: String = "clzz${cssClassCounter++}",
     base: CssBuilder.() -> Unit,
     hover: CssBuilder.() -> Unit
 ) {

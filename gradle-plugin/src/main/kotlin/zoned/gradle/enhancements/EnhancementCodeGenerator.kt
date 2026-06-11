@@ -85,7 +85,7 @@ open class EnhancementCodeGenerator : DefaultTask() {
     private fun generateJvmDSL(enhancements: List<DiscoveredEnhancement>) {
         // Use project-specific package to avoid conflicts
         val projectPackage = "${project.name.lowercase().replace("-", "")}.enhancements"
-        val outputDir = File(project.buildDir, "generated/kotlin/${projectPackage.replace(".", "/")}")
+        val outputDir = File(project.layout.buildDirectory.get().asFile, "generated/kotlin/${projectPackage.replace(".", "/")}")
         outputDir.mkdirs()
 
         // Project-specific DSL file name
@@ -220,7 +220,7 @@ open class EnhancementCodeGenerator : DefaultTask() {
     ) {
         // Use project-specific package to avoid conflicts
         val projectPackage = "${project.name.lowercase().replace("-", "")}.enhancements"
-        val outputDir = File(project.buildDir, "generated/kotlin-js/${projectPackage.replace(".", "/")}")
+        val outputDir = File(project.layout.buildDirectory.get().asFile, "generated/kotlin-js/${projectPackage.replace(".", "/")}")
         outputDir.mkdirs()
 
         // Project-specific registry name

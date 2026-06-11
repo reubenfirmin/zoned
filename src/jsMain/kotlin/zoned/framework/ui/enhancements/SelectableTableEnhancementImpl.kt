@@ -11,6 +11,7 @@ import web.dom.Node
 import web.dom.document
 import web.events.EventType
 import web.events.addEventListener
+import web.events.removeEventListener
 import web.html.HTMLElement
 import web.html.HTMLInputElement
 import web.mouse.MouseEvent
@@ -252,14 +253,21 @@ fun TagConsumer<HTMLElement>.initSelectableTableEnhancement(config: SelectableTa
                     }
                 })
 
-                // Hide menu when clicking outside
-                document.addEventListener(EventType<MouseEvent>("click"), { event: MouseEvent ->
-                    val target = event.target as? Element
-                    // If click is not inside the action bar, hide menu
-                    if (target != null && !actionBar.contains(target)) {
-                        hideMoveMenu()
+                // Hide menu when clicking outside. Self-pruning: each re-init of the enhancement
+                // would otherwise add one more permanent document-level listener.
+                lateinit var outsideClick: (MouseEvent) -> Unit
+                outsideClick = { event: MouseEvent ->
+                    if (!actionBar.isConnected) {
+                        document.removeEventListener(EventType<MouseEvent>("click"), outsideClick)
+                    } else {
+                        val target = event.target as? Element
+                        // If click is not inside the action bar, hide menu
+                        if (target != null && !actionBar.contains(target)) {
+                            hideMoveMenu()
+                        }
                     }
-                })
+                }
+                document.addEventListener(EventType<MouseEvent>("click"), outsideClick)
 
                 // Listen for clicks inside the action bar's move menu (delegated)
                 actionBar.addEventListener(EventType<MouseEvent>("click"), { event: MouseEvent ->

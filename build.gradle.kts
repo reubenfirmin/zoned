@@ -111,6 +111,12 @@ kotlin {
                 implementation("com.squareup.okhttp3:okhttp:5.3.2")
             }
         }
+
+        val jsTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+            }
+        }
     }
 }
 //
