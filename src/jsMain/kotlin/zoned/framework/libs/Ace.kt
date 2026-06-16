@@ -20,8 +20,13 @@ private var aceModule: AceModule? = null
  */
 fun loadAce(): Promise<AceModule> {
     aceModule?.let { return Promise.resolve(it) }
-    // The resolver import is side-effect-only and must run after ace itself; chain in raw JS so
-    // the nested promise flattens naturally, then type the result at the boundary.
+    // WHY raw js(): Kotlin/JS has NO typed expression for a dynamic, code-split `import()` — it is
+    // the conventional idiom (kotlinx + kotlin-wrappers themselves lazy-load this way). A static
+    // @JsModule binding would bundle Ace into the main chunk, defeating the code-split; a typed JS
+    // shim could hide it but would add a hand-written module + klib-resource packaging to this
+    // PUBLISHED library. So the raw import lives here, confined, and the result is typed at the
+    // boundary (below). The resolver import is side-effect-only and must run after ace itself;
+    // chaining in raw JS lets the nested promise flatten naturally.
     val loading = js(
         "import('ace-builds/src-noconflict/ace')" +
             ".then(function(m){ return import('ace-builds/webpack-resolver').then(function(){ return m; }); })"
@@ -43,6 +48,8 @@ private var languageToolsLoading: Promise<Unit>? = null
  */
 fun loadAceLanguageTools(): Promise<Unit> {
     languageToolsLoading?.let { return it }
+    // Raw js() for the same reason as [loadAce]: it's the only way to express a code-split
+    // `import()` in Kotlin/JS. Confined here; the public API ([loadAceLanguageTools]) stays typed.
     val loading = js("import('ace-builds/src-noconflict/ext-language_tools')")
         .unsafeCast<Promise<dynamic>>()
         .then<Unit> { }
@@ -147,10 +154,19 @@ external interface AceCommandObject {
     val command: (() -> Unit)?
 }
 
-/** The subset of editor options we toggle (autocompletion). */
+/** The subset of editor options we toggle: autocompletion, plus the chrome that distinguishes a
+ *  code editor from a plain prose editor (gutter/line-numbers, the print margin, the active-line
+ *  highlight). All optional — unset keys keep Ace's defaults.
+ *
+ *  NOTE: deliberately NO `fontFamily` — Ace's renderer measures a single glyph width and assumes a
+ *  monospace face, so a proportional font misplaces the cursor, selection, and the autocomplete
+ *  popup. Plain mode drops the chrome but keeps a monospace face. */
 external interface AceEditorOptions {
     var enableBasicAutocompletion: Boolean
     var enableLiveAutocompletion: Boolean
+    var showGutter: Boolean
+    var showPrintMargin: Boolean
+    var highlightActiveLine: Boolean
 }
 
 /** One suggestion in the autocomplete popup. */
@@ -181,7 +197,15 @@ external interface AceCompleter {
     ) -> Unit
 }
 
-// Helper functions for ergonomic object creation
+// Typed builders for the plain-JS config objects Ace expects (a command, a completer, a range…).
+//
+// WHY unsafeJso: constructing an `external interface` instance requires kotlin-wrappers' object
+// builder. It used to be called `jso`; kotlin-wrappers RENAMED it to `unsafeJso` (current: 2026.6.2)
+// precisely to stop implying the construction is type-checked — building an external interface never
+// is. There is NO `jso` to switch to; `unsafeJso` IS the sanctioned, only API. Everything around it
+// is fully typed: each builder takes typed params and returns a typed `external interface`, so call
+// sites never touch `dynamic`. The single `unsafeJso { }` per builder is the minimal, contained
+// construction primitive — the boundary, not a shortcut.
 
 fun aceRange(startRow: Int, startCol: Int, endRow: Int, endCol: Int): AceRange = unsafeJso {
     start = unsafeJso {
@@ -206,6 +230,14 @@ fun aceCommand(name: String, winKey: String, macKey: String, exec: (AceEditor) -
 fun aceEditorOptions(enableBasicAutocompletion: Boolean, enableLiveAutocompletion: Boolean): AceEditorOptions = unsafeJso {
     this.enableBasicAutocompletion = enableBasicAutocompletion
     this.enableLiveAutocompletion = enableLiveAutocompletion
+}
+
+/** Editor chrome: make a code editor read as a plain editor by hiding the gutter (line numbers), the
+ *  print margin, and the active-line highlight. The face stays monospace (see [AceEditorOptions]). */
+fun acePlainEditorOptions(): AceEditorOptions = unsafeJso {
+    this.showGutter = false
+    this.showPrintMargin = false
+    this.highlightActiveLine = false
 }
 
 fun aceCompletion(caption: String, value: String, meta: String): AceCompletion = unsafeJso {

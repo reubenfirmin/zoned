@@ -63,6 +63,20 @@ fun CssBuilder.important(property: String, value: Any) = raw(property, "$value !
  *  origin). [value] is a CSS origin such as `"center center"`, `"top left"`, or `"50% 50%"`. */
 fun CssBuilder.transformOrigin(value: String) = raw("transform-origin", value)
 
+/** `transform-style` — `flat` (children flattened into the element's plane) or `preserve-3d` (children
+ *  keep their own 3D positions, forming a shared 3D rendering context). kotlin-css models neither. */
+enum class TransformStyle(val css: String) { FLAT("flat"), PRESERVE_3D("preserve-3d") }
+fun CssBuilder.transformStyle(style: TransformStyle) = raw("transform-style", style.css)
+
+/** `backface-visibility` — whether an element is shown when its back faces the viewer (rotated past
+ *  90°). `hidden` is the half of a two-faced flip that hides the side currently turned away. */
+enum class BackfaceVisibility(val css: String) { VISIBLE("visible"), HIDDEN("hidden") }
+fun CssBuilder.backfaceVisibility(value: BackfaceVisibility) = raw("backface-visibility", value.css)
+
+/** `transition: none` — kill inherited transitions for a rule (e.g. a cloned drag mirror that must
+ *  track the cursor without easing). kotlin-css's `transition` only composes, it can't clear. */
+fun CssBuilder.transitionNone() = raw("transition", "none")
+
 /**
  * `contain-intrinsic-size` — the placeholder size used while a `content-visibility: auto` subtree
  * is skipped (kotlin-css models content-visibility but not this). With [rememberRendered] the
