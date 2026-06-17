@@ -3,7 +3,6 @@ package zoned.gradle.generation
 import org.gradle.configurationcache.extensions.capitalized
 import org.jooq.codegen.DefaultGeneratorStrategy
 import org.jooq.codegen.GeneratorStrategy
-import org.jooq.codegen.KotlinGenerator
 import org.jooq.meta.ColumnDefinition
 import org.jooq.meta.Definition
 import org.jooq.meta.TableDefinition
@@ -69,8 +68,6 @@ class EntityGenerationStrategy : DefaultGeneratorStrategy() {
         "created",
         "deleted"
     )
-
-    private val typeResolver = JavaTypeResolver()
 
     // Exceptions for singularization
     private val singularizeExceptions = setOf<String>()
@@ -141,6 +138,16 @@ class EntityGenerationStrategy : DefaultGeneratorStrategy() {
         return pascalCase.first().lowercase() + pascalCase.substring(1)
     }
 
+    // jOOQ names Record/interface members via getJavaMemberName, which (unlike our overridden
+    // getJavaIdentifier) does not split on underscores before digits — so a column like `tax_1`
+    // would become record member `tax_1` while the custom POJO field is `tax1`, and the generated
+    // `Record(value: Pojo)` constructor would reference a non-existent `value.tax_1`. Route column
+    // member names through the same camelCase logic so records and POJOs stay in lock-step.
+    override fun getJavaMemberName(definition: Definition, mode: GeneratorStrategy.Mode?): String {
+        return if (definition is ColumnDefinition) getJavaIdentifierForEntityField(definition)
+        else super.getJavaMemberName(definition, mode)
+    }
+
     // From RenamingStrategy - singularize class names
     override fun getJavaClassName(definition: Definition?, mode: GeneratorStrategy.Mode?): String {
         val defaultName = super.getJavaClassName(definition, mode)
@@ -190,7 +197,7 @@ class EntityGenerationStrategy : DefaultGeneratorStrategy() {
      * All tables with primary keys get sealed classes with New/Existing states.
      * Tables without primary keys get plain data classes (rare edge case).
      */
-    fun generateEntitySealedClass(generator: KotlinGenerator, table: TableDefinition, out: org.jooq.codegen.JavaWriter): String {
+    fun generateEntitySealedClass(generator: EntityKotlinGenerator, table: TableDefinition, out: org.jooq.codegen.JavaWriter): String {
         val className = getJavaClassName(table, GeneratorStrategy.Mode.POJO)
         val pkColumns = getPrimaryKeyColumns(table)
         val columnsForNew = getColumnsForNew(table)
@@ -198,11 +205,12 @@ class EntityGenerationStrategy : DefaultGeneratorStrategy() {
 
         val sb = StringBuilder()
 
-        // Add header and imports
-        sb.append("package ${generator.getTargetPackage()}.tables.pojos;\n\n")
-        sb.append("import java.io.Serializable;\n")
-        sb.append("import java.time.LocalDateTime;\n")
-        sb.append("import zoned.framework.db.Entity;\n\n")
+        // Add header and imports. Field types are emitted fully qualified (see
+        // EntityKotlinGenerator.resolveKotlinType), so the only imports needed are the
+        // interfaces referenced unqualified in the class declaration below.
+        sb.append("package ${generator.getTargetPackage()}.tables.pojos\n\n")
+        sb.append("import java.io.Serializable\n")
+        sb.append("import zoned.framework.db.Entity\n\n")
 
         // Use sealed class pattern for any table with a primary key
         val useSealedClass = pkColumns.isNotEmpty()
@@ -244,7 +252,7 @@ class EntityGenerationStrategy : DefaultGeneratorStrategy() {
             sb.append("    data class New(\n")
             newStateColumns.forEachIndexed { index, column ->
                 val fieldName = getJavaIdentifierForEntityField(column)
-                val fieldType = typeResolver.getJavaType(column.getType())
+                val fieldType = generator.resolveKotlinType(column.type, out)
                 val fieldTypeWithNullability = if (isNullable(column)) "$fieldType?" else fieldType
                 sb.append("        val $fieldName: $fieldTypeWithNullability")
                 if (index < newStateColumns.size - 1) sb.append(",")
@@ -258,7 +266,7 @@ class EntityGenerationStrategy : DefaultGeneratorStrategy() {
             // Add pk columns first
             pkColumns.forEachIndexed { index, pkColumn ->
                 val pkFieldName = getJavaIdentifierForEntityField(pkColumn)
-                val pkFieldType = typeResolver.getJavaType(pkColumn.getType())
+                val pkFieldType = generator.resolveKotlinType(pkColumn.type, out)
                 val pkFieldTypeWithNullability = if (isNullable(pkColumn)) "$pkFieldType?" else pkFieldType
                 sb.append("        val $pkFieldName: $pkFieldTypeWithNullability")
                 if (index < pkColumns.size - 1 || existingStateColumns.isNotEmpty()) sb.append(",")
@@ -268,7 +276,7 @@ class EntityGenerationStrategy : DefaultGeneratorStrategy() {
             // Add remaining columns
             existingStateColumns.forEachIndexed { index, column ->
                 val fieldName = getJavaIdentifierForEntityField(column)
-                val fieldType = typeResolver.getJavaType(column.getType())
+                val fieldType = generator.resolveKotlinType(column.type, out)
                 val fieldTypeWithNullability = if (isNullable(column)) "$fieldType?" else fieldType
                 sb.append("        val $fieldName: $fieldTypeWithNullability")
                 if (index < existingStateColumns.size - 1) sb.append(",")
@@ -286,7 +294,7 @@ class EntityGenerationStrategy : DefaultGeneratorStrategy() {
 
             columnsForNew.forEachIndexed { index, column ->
                 val fieldName = getJavaIdentifierForEntityField(column)
-                val fieldType = typeResolver.getJavaType(column.getType())
+                val fieldType = generator.resolveKotlinType(column.type, out)
                 val fieldTypeWithNullability = if (isNullable(column)) "$fieldType?" else fieldType
                 sb.append("        val $fieldName: $fieldTypeWithNullability")
                 if (index < columnsForNew.size - 1) sb.append(",")

@@ -30,7 +30,7 @@ class ElementTrackingConsumer(
     private val parent: HTMLElement
 ) : TagConsumer<HTMLElement> {
 
-    private val builder = JSDOMBuilder<HTMLElement>(parent.ownerDocument!!)
+    private val builder = JSDOMBuilder<HTMLElement>(parent.ownerDocument)
     private val mountCallbacks = mutableListOf<Pair<Int, () -> Unit>>()
     private var depth = 0
 

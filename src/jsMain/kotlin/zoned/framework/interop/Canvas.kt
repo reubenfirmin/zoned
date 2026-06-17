@@ -4,14 +4,6 @@ import web.canvas.CanvasRenderingContext2D
 import web.html.HTMLCanvasElement
 
 /**
- * Extension for HTMLCanvasElement.toDataURL with quality parameter.
- * kotlin-browser only has the single-argument overload typed.
- */
-fun HTMLCanvasElement.toDataURL(type: String, quality: Double): String {
-    return asDynamic().toDataURL(type, quality) as String
-}
-
-/**
  * Get a 2D rendering context from a canvas element.
  *
  * kotlin-browser 2025.x requires a RenderingContextId<T,O> for getContext(),

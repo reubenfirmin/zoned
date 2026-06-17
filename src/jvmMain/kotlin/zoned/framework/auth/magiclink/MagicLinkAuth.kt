@@ -52,9 +52,7 @@ class MagicLinkAuth @Inject constructor(
 
     @POST("/request")
     fun requestMagicLink(ctx: Context, request: ConvertedEntity<MagicLinkRequest>): Response {
-        val email = request.entity()?.email ?: return ctx.fragment {
-            p { +"Email is required" }
-        }
+        val email = request.entity().email
         val user = provider.findUserByEmail(email)
         val isNewUser = user == null
 

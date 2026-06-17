@@ -45,7 +45,7 @@ private fun ensureObserver() {
             sharedObserver = null
         }
     }
-    document.body?.let {
+    document.body.let {
         observer.observe(it, MutationObserverInit(childList = true, subtree = true))
         sharedObserver = observer
     }

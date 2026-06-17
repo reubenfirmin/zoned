@@ -90,7 +90,7 @@ class EventBusTest {
         // nor prune it prematurely while it is attached.
         val bus = EventBus<TestEvent>()
         var count = 0
-        val el = document.createElement("div") as HTMLElement
+        val el = document.createElement("div")
         with(bus) { el.on<Ping> { count++ } }
         document.body.appendChild(el)
         bus.fire(Ping(1))               // attached: handler fires

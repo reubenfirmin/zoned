@@ -188,7 +188,7 @@ class AreaChart(element: Element, series: List<Pair<Series, AxisOptions>>, xaxis
     }
 
     fun options(series: List<Pair<Series, AxisOptions>>, xaxisLabels: Array<String>): ChartOptions {
-        val darkMode = document.documentElement?.classList?.contains(ClassName("dark")) ?: false
+        val darkMode = document.documentElement.classList.contains(ClassName("dark"))
         val borderColor = if (darkMode) "#374151" else "#F3F4F6"
         val labelColor = if (darkMode) "#9CA3AF" else "#6B7280"
         val opacityFrom = if (darkMode) 0.0 else 0.15

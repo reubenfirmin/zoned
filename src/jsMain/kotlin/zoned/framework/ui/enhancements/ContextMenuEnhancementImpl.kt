@@ -148,8 +148,8 @@ fun TagConsumer<HTMLElement>.initContextMenuEnhancement(config: ContextMenuConfi
                 }
             }
             // Add to document with stored references (so we can remove them later)
-            document.addEventListener(EventType("click"), clickHandler!!)
-            document.addEventListener(EventType("keydown"), keyHandler!!)
+            document.addEventListener(EventType("click"), clickHandler)
+            document.addEventListener(EventType("keydown"), keyHandler)
         }
 
         onDestroy {
@@ -192,7 +192,7 @@ private fun findElementWithDataAttributes(start: Element?, dataAttributes: List<
     var current = start
     while (current != null) {
         val hasAttr = dataAttributes.any { attr ->
-            current?.getAttribute("data-$attr") != null
+            current.getAttribute("data-$attr") != null
         }
         if (hasAttr) return current
         current = current.parentElement

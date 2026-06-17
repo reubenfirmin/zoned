@@ -41,7 +41,7 @@ open class SvgTag(classes: String?, consumer: TagConsumer<*>) : HTMLTag(
         }
 
     fun rect(block: SvgRect.() -> Unit = {}) =
-        SvgRect(consumer as TagConsumer<*>).visit(block)
+        SvgRect(consumer).visit(block)
 
     fun path(block: SvgPath.() -> Unit = {}) =
         SvgPath(consumer).visit(block)

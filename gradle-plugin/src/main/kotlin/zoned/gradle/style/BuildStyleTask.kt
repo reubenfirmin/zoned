@@ -67,7 +67,7 @@ abstract class BuildStyleTask @Inject constructor(
     }
 
     private fun setupNpxTask() {
-        npxTask = project.tasks.create("buildStyleNpx", NpxTask::class.java)
+        npxTask = project.tasks.register("buildStyleNpx", NpxTask::class.java).get()
         
         // Use the bundled tailwindcss from build/js/node_modules instead of npx
         val tailwindCli = project.layout.buildDirectory.dir("js/node_modules/@tailwindcss/cli/dist/index.mjs").get().asFile

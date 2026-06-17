@@ -19,36 +19,13 @@ open class JooqGenerator : DefaultTask() {
         val modelPackage = findModelPackage(sourceDir)
 
         GenerationTool.generate(
-            Configuration()
-                .withLogging(Logging.DEBUG)
-                .withJdbc(jdbc(config))
-                .withGenerator(
-                    Generator()
-                        .withDatabase(database(config))
-                        .withName("zoned.gradle.generation.EntityKotlinGenerator")
-                        .withGenerate(
-                            Generate()
-                                .withPojos(true)
-                                .withKotlinNotNullPojoAttributes(true)
-                                .withKotlinNotNullInterfaceAttributes(true)
-                                .withKotlinNotNullRecordAttributes(true)
-                                .withPojosAsKotlinDataClasses(true)
-                                // jooq bug - these should be default false for data classes
-                                // (https://github.com/jOOQ/jOOQ/issues/10917)
-                                .withPojosEqualsAndHashCode(false)
-                                .withPojosToString(false)
-                                .withImmutablePojos(true)
-                        )
-                        .withStrategy(Strategy().apply {
-                            withName("zoned.gradle.generation.EntityGenerationStrategy")
-                        })
-                        .withTarget(org.jooq.meta.jaxb.Target()
-                            .withPackageName("${modelPackage}.jooq")
-                            .withDirectory(sourceDir)
-                        )
-                )
-                .withOnError(OnError.FAIL)
-                .withLogging(Logging.DEBUG)
+            buildConfiguration(
+                jdbc = jdbc(config),
+                suppressorDatabase = suppressor(config),
+                isSqlite = config.dbPath != null,
+                packageName = "${modelPackage}.jooq",
+                targetDirectory = sourceDir
+            )
         )
 
         // now clean up the record classes
@@ -79,18 +56,54 @@ open class JooqGenerator : DefaultTask() {
         }
     }
 
-    private fun database(config: Config): Database {
-        return if (config.dbPath != null) {
-            logger.info("Introspecting sqllite database")
-            Database()
-                .withName(suppressor(config))
+    companion object {
+        /**
+         * Builds the jOOQ [Configuration] that drives entity generation. Extracted from the Gradle
+         * task so it can be exercised directly by tests against a throwaway database, guaranteeing
+         * the task and the tests share one code path.
+         */
+        fun buildConfiguration(
+            jdbc: Jdbc,
+            suppressorDatabase: String,
+            isSqlite: Boolean,
+            packageName: String,
+            targetDirectory: String
+        ): Configuration {
+            val database = Database()
+                .withName(suppressorDatabase)
                 .withIncludes(".*")
-        } else {
-            logger.info("Introspecting postgres database")
-            Database()
-                .withName(suppressor(config))
-                .withIncludes(".*")
-                .withInputSchema("public")
+                .apply { if (!isSqlite) withInputSchema("public") }
+
+            return Configuration()
+                .withLogging(Logging.DEBUG)
+                .withJdbc(jdbc)
+                .withGenerator(
+                    Generator()
+                        .withDatabase(database)
+                        .withName("zoned.gradle.generation.EntityKotlinGenerator")
+                        .withGenerate(
+                            Generate()
+                                .withPojos(true)
+                                .withKotlinNotNullPojoAttributes(true)
+                                .withKotlinNotNullInterfaceAttributes(true)
+                                .withKotlinNotNullRecordAttributes(true)
+                                .withPojosAsKotlinDataClasses(true)
+                                // jooq bug - these should be default false for data classes
+                                // (https://github.com/jOOQ/jOOQ/issues/10917)
+                                .withPojosEqualsAndHashCode(false)
+                                .withPojosToString(false)
+                                .withImmutablePojos(true)
+                        )
+                        .withStrategy(Strategy().apply {
+                            withName("zoned.gradle.generation.EntityGenerationStrategy")
+                        })
+                        .withTarget(org.jooq.meta.jaxb.Target()
+                            .withPackageName(packageName)
+                            .withDirectory(targetDirectory)
+                        )
+                )
+                .withOnError(OnError.FAIL)
+                .withLogging(Logging.DEBUG)
         }
     }
 

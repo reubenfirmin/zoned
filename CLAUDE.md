@@ -13,6 +13,7 @@ The server renders complete HTML with data attributes. The client-side JavaScrip
 ## Build Workflow
 
 - **Watch process**: `./watch.sh` runs continuously and rebuilds on changes
+- **Tests**: `./test.sh` (generated alongside watch.sh by ZonedPlugin.kt) runs `allTests` on its own 6g Kotlin daemon + `--build-cache` so it coexists with `watch.sh`; never `./gradlew --stop` (kills watch's daemon)
 - **Check errors**: Look at `.build_errors` file (appears when build fails, disappears on success)
 - **Publish zoned**: After editing zoned files, run `./gradlew publishToMavenLocal` so dependent projects pick up changes
 

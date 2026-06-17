@@ -29,6 +29,7 @@ class PatchedTableDefinition(
         patch(it as DefaultColumnDefinition)
     }
 
+    @Suppress("DEPRECATION")
     private fun patch(columnDef: DefaultColumnDefinition) =
         DefaultColumnDefinition(
             tableDef, columnDef.name, columnDef.position, Proxy.newProxyInstance(

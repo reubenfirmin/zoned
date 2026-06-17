@@ -19,7 +19,7 @@ class Banner(val elementId: String, val bannerText: String, val ctaText: String,
             }
         }
         div("flex items-center flex-shrink-0") {
-            ibutton(zoned.framework.ui.components.buttons.ButtonType.PRIMARY, this@Banner.ctaText, this@Banner.action)
+            ibutton(zoned.framework.ui.components.buttons.ButtonStyle.PRIMARY, this@Banner.ctaText, this@Banner.action)
             // TODO convert to iButton?
             button(classes = "flex-shrink-0 inline-flex justify-center w-7 h-7 items-center text-gray-400 hover:bg-gray-200 hover:text-gray-900 " +
                     "rounded-lg text-sm p-1.5 dark:hover:bg-gray-600 dark:hover:text-white") {

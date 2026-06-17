@@ -122,18 +122,18 @@ object HTMXHelper {
             if (targetEl.tagName == "BODY") {
                 val response = xhr.responseText
                 val parsedResponse = parser.parseFromString(response, TEXT_HTML)
-                val parsedBody = parsedResponse.body ?: return@on
+                val parsedBody = parsedResponse.body
                 val bodyAttributes = parsedBody.attributes
 
                 // remove old
                 for (i in (0 until targetEl.attributes.length).reversed()) {
-                    val attr = targetEl.attributes[i] ?: continue
+                    val attr = targetEl.attributes[i]
                     targetEl.removeAttribute(attr.name)
                 }
 
                 // set new
                 for (i in 0 until bodyAttributes.length) {
-                    val attr = bodyAttributes[i] ?: continue
+                    val attr = bodyAttributes[i]
                     targetEl.setAttribute(attr.name, attr.value)
                 }
             }

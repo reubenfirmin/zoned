@@ -18,7 +18,7 @@ open class BundleConfigGenerator : DefaultTask() {
         val bundleName = "$projectName.bundle.js"
 
         // Generate the BundleConfig.kt file in jvmMain/kotlin
-        val outputDir = File(project.buildDir, "generated/kotlin/zoned/framework/ui/libs")
+        val outputDir = project.layout.buildDirectory.dir("generated/kotlin/zoned/framework/ui/libs").get().asFile
         outputDir.mkdirs()
 
         val outputFile = File(outputDir, "BundleConfig.kt")

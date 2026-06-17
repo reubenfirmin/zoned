@@ -20,7 +20,7 @@ import zoned.framework.interop.rebuildInPlace
 data class Zone(val elementId: String) {
 
     /** The zone's live element, or null if it isn't currently in the DOM. */
-    fun resolve(): HTMLElement? = document.getElementById(ElementId(elementId)) as? HTMLElement
+    fun resolve(): HTMLElement? = document.getElementById(ElementId(elementId))
 
     /**
      * Swap this zone's contents: clear the element and build [block] into it. Everything outside
