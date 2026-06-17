@@ -7,6 +7,7 @@ import org.jooq.codegen.GenerationTool
 import org.jooq.meta.jaxb.*
 import zoned.gradle.Config
 import zoned.gradle.DatabaseSetup
+import zoned.gradle.ZonedExtension
 import java.io.File
 
 @DisableCachingByDefault(because = "Generates jOOQ sources from a live database")
@@ -17,6 +18,7 @@ open class JooqGenerator : DefaultTask() {
         val config = DatabaseSetup(logger).config
         val sourceDir = findSourceDirectory()
         val modelPackage = findModelPackage(sourceDir)
+        val extension = project.extensions.findByType(ZonedExtension::class.java)
 
         GenerationTool.generate(
             buildConfiguration(
@@ -24,7 +26,9 @@ open class JooqGenerator : DefaultTask() {
                 suppressorDatabase = suppressor(config),
                 isSqlite = config.dbPath != null,
                 packageName = "${modelPackage}.jooq",
-                targetDirectory = sourceDir
+                targetDirectory = sourceDir,
+                enumMappings = extension?.enumMappings ?: emptyList(),
+                forcedTypes = extension?.forcedTypes ?: emptyList()
             )
         )
 
@@ -67,12 +71,40 @@ open class JooqGenerator : DefaultTask() {
             suppressorDatabase: String,
             isSqlite: Boolean,
             packageName: String,
-            targetDirectory: String
+            targetDirectory: String,
+            enumMappings: List<Pair<String, String>> = emptyList(),
+            forcedTypes: List<Triple<String, String, String>> = emptyList()
         ): Configuration {
             val database = Database()
                 .withName(suppressorDatabase)
                 .withIncludes(".*")
                 .apply { if (!isSqlite) withInputSchema("public") }
+
+            // SQLite has no uuid/timestamptz/enum types — everything is TEXT/NUMERIC. Force the rich
+            // Kotlin types back via converters so the generated model matches the Postgres-era types.
+            if (isSqlite) {
+                // jOOQ maps uuid -> UUID, date -> LocalDate, numeric -> BigDecimal, boolean -> Boolean
+                // natively for SQLite. Only timestamptz (-> generic OTHER) and enums (-> CLOB/String)
+                // need forced converters.
+                val forced = mutableListOf<ForcedType>()
+                forced += ForcedType()
+                    .withIncludeTypes("(?i)timestamptz|timestamp|datetime")
+                    .withUserType("java.time.OffsetDateTime")
+                    .withConverter("zoned.framework.db.OffsetDateTimeConverter")
+                enumMappings.forEach { (column, enumFqn) ->
+                    forced += ForcedType()
+                        .withIncludeExpression("(?i).*\\.$column")
+                        .withUserType(enumFqn)
+                        .withConverter("org.jooq.impl.EnumConverter<kotlin.String, $enumFqn>(kotlin.String::class.java, $enumFqn::class.java)")
+                }
+                forcedTypes.forEach { (column, userType, converter) ->
+                    forced += ForcedType()
+                        .withIncludeExpression("(?i).*\\.$column")
+                        .withUserType(userType)
+                        .withConverter(converter)
+                }
+                database.withForcedTypes(forced)
+            }
 
             return Configuration()
                 .withLogging(Logging.DEBUG)

@@ -17,6 +17,7 @@ import zoned.gradle.style.BuildStyleTask
 class ZonedPlugin : Plugin<Project> {
 
     override fun apply(project: Project) {
+        project.extensions.create("zoned", ZonedExtension::class.java)
         project.tasks.register("db-clean", DatabaseCleaner::class.java)
         project.tasks.register("db-migrate", DatabaseMigrator::class.java)
         project.tasks.register("model-generate", JooqGenerator::class.java)
@@ -149,6 +150,15 @@ class ZonedPlugin : Plugin<Project> {
                         tmux set-option -q window-status-current-format ""
                         # Enable mouse mode for scroll support
                         tmux set-option -q mouse on
+                        # Route tmux copy-mode selections to the SYSTEM clipboard. Without this, a
+                        # mouse drag only fills tmux's private buffer and the highlight just vanishes
+                        # on release, so a normal terminal/OS paste gets nothing. set-clipboard pushes
+                        # via OSC52 (kitty honours it); the explicit copy-pipe is a wayland/X fallback.
+                        tmux set-option -q set-clipboard on
+                        tmux set-option -qga terminal-features ",xterm-kitty:clipboard"
+                        CLIP='wl-copy 2>/dev/null || xclip -selection clipboard 2>/dev/null || xsel --clipboard --input 2>/dev/null'
+                        tmux bind-key -T copy-mode    MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "${'$'}CLIP"
+                        tmux bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "${'$'}CLIP"
 
                         # Top bar for git stats using pane border
                         tmux set-option -q pane-border-status top
