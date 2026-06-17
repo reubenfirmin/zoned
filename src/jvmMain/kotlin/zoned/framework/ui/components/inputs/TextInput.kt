@@ -2,7 +2,7 @@ package zoned.framework.ui.components.inputs
 
 import kotlinx.html.*
 import zoned.framework.ui.components.buttons.ButtonAction
-import zoned.framework.ui.components.buttons.ButtonType
+import zoned.framework.ui.components.buttons.ButtonStyle
 import zoned.framework.ui.components.buttons.HTMXAction
 import zoned.framework.ui.components.buttons.ibutton
 import zoned.framework.ui.components.html
@@ -27,7 +27,7 @@ class TextInput(
 
         if (inset) {
             div("absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none") {
-                this@TextInput.inset!!.invoke()
+                this@TextInput.inset.invoke()
             }
         }
 
@@ -51,7 +51,7 @@ class TextInput(
             placeholder = this@TextInput.placeHolder ?: ""
         }
         if (this@TextInput.buttonLabel != null && this@TextInput.action != null) {
-            ibutton(ButtonType.PRIMARY, this@TextInput.buttonLabel, this@TextInput.action)
+            ibutton(ButtonStyle.PRIMARY, this@TextInput.buttonLabel, this@TextInput.action)
         }
     }
 }

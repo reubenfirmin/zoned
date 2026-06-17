@@ -26,7 +26,7 @@ fun <T : Element> HTMLCollection<T>.firstOrNull(): T? {
 }
 
 fun getHtmlElement(id: String): HTMLElement? {
-    return document.getElementById(ElementId(id)) as? HTMLElement
+    return document.getElementById(ElementId(id))
 }
 
 /**
@@ -34,7 +34,7 @@ fun getHtmlElement(id: String): HTMLElement? {
  * Useful for modals, tooltips, and other body-level elements.
  */
 fun addToBody(block: TagConsumer<HTMLElement>.() -> Unit) {
-    val body = document.body ?: error("document.body not available")
+    val body = document.body
     ElementTrackingConsumer(body).block()
 }
 
@@ -48,7 +48,7 @@ fun addToBody(block: TagConsumer<HTMLElement>.() -> Unit) {
  * control should re-focus it afterwards.
  */
 fun HTMLElement.rebuildInPlace(block: TagConsumer<HTMLElement>.() -> HTMLElement): HTMLElement? {
-    val parent = parentElement as? HTMLElement ?: return null
+    val parent = parentElement ?: return null
     val next = nextSibling
     parent.removeChild(this)
     val replacement = ElementTrackingConsumer(parent).block()

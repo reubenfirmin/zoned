@@ -80,7 +80,7 @@ class HorizontalBarChart<Y: Number>(element: Element,
 
     // TODO much in common with the AreaChart. combine. also make more flexible
     private fun options(data: Array<BarSeries<Y>>, labelsInBars: Boolean, formatter: (Y, FormatterContext<Y>) -> String): HorizontalBarOptions<Y> {
-        val darkMode = document.documentElement?.classList?.contains(ClassName("dark")) ?: false
+        val darkMode = document.documentElement.classList.contains(ClassName("dark"))
         val labelColor = if (darkMode) "#9CA3AF" else "#6B7280"
         val fontFamily = "Inter, sans-serif"
         val theme = if (darkMode) "dark" else "light"

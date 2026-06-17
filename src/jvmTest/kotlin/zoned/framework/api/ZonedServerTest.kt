@@ -43,7 +43,7 @@ class ZonedServerTest {
     fun `anon-allowed route returns 200`() {
         client.newCall(Request.Builder().url("$BASE/test/hello").get().build()).execute().use { resp ->
             assertEquals(200, resp.code)
-            assertEquals("hi", resp.body!!.string())
+            assertEquals("hi", resp.body.string())
         }
     }
 

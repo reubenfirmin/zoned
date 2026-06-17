@@ -46,7 +46,7 @@ class ValidatingInput(
             if (hasInsetLeft) {
                 div("pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3") {
                     span("text-gray-500 sm:text-sm") {
-                        +this@ValidatingInput.insetLeft!!
+                        +this@ValidatingInput.insetLeft
                     }
                 }
             }

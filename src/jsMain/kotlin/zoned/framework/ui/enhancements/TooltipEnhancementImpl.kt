@@ -70,7 +70,7 @@ private object TooltipManager {
         tooltipElement?.takeIf { it.isConnected }?.let { return it }
 
         // Create tooltip element directly (not via Ref which has async binding)
-        val tip = document.createElement("div") as HTMLElement
+        val tip = document.createElement("div")
         tip.css {
             position = Position.absolute
             backgroundColor = Color("rgba(17, 24, 39, 0.95)")
@@ -87,7 +87,7 @@ private object TooltipManager {
             border = Border(1.px, BorderStyle.solid, Color("rgba(75, 85, 99, 0.5)"))
             boxShadow += BoxShadow(Color("rgba(0, 0, 0, 0.3)"), 0.px, 2.px, 8.px)
         }
-        document.body?.appendChild(tip)
+        document.body.appendChild(tip)
         tooltipElement = tip
         return tip
     }

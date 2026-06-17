@@ -102,7 +102,7 @@ class FormConversionChecker {
         val hasAnnotation = requiredAnnotation != null
 
         val typesCanBeHandled = if (supportedCollection && hasAnnotation) {
-            val subConversion = canConvertSub(requiredAnnotation!!.type, parameter)
+            val subConversion = canConvertSub(requiredAnnotation.type, parameter)
             if (subConversion.canConvert) {
                 paramNames.addAll(subConversion.paramNames)
                 true

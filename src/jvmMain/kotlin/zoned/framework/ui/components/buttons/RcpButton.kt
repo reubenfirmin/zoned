@@ -21,7 +21,7 @@ import kotlin.reflect.KFunction1
 /**
  * This component has two "blocks" on either side of the label, to allow adding icons on either side.
  */
-class RcpButton(type: ButtonType, val label: String?, val action: ButtonAction, val enabled: Boolean, val elementId: String?,
+class RcpButton(type: ButtonStyle, val label: String?, val action: ButtonAction, val enabled: Boolean, val elementId: String?,
                 consumer: TagConsumer<*>):
     BUTTON(mapOf("class" to type.classes), consumer) {
 
@@ -98,7 +98,7 @@ object ButtonClasses {
 }
 
 fun FlowContent.ibutton(
-    buttonType: ButtonType,
+    buttonType: ButtonStyle,
     label: String? = null,
     action: ButtonAction,
     enabled: Boolean = true,

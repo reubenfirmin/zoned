@@ -11,6 +11,7 @@ import zoned.framework.ui.libs.onTypingPause
  * @deprecated Use SearchInput with HTMXAction for type-safe HTMX integration
  */
 @Deprecated("Use SearchInput with HTMXAction", ReplaceWith("searchInput"))
+@Suppress("DEPRECATION")
 class HTMXSearchInput(private val styleClasses: String,
                       private val inputName: String,
                       private val inputPlaceholder: String,
@@ -72,6 +73,7 @@ class HTMXSearchInput(private val styleClasses: String,
  * @deprecated Use searchInput with HTMXAction for type-safe HTMX integration
  */
 @Deprecated("Use searchInput with HTMXAction", ReplaceWith("searchInput"))
+@Suppress("DEPRECATION")
 fun FlowContent.htmxSearchInput(name: String, placeholder: String, searchAction: HTMXAction,
                                 withOptions: WithOptions, block: HTMXSearchInput.() -> Unit) {
 

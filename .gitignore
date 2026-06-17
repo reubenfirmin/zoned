@@ -50,3 +50,4 @@ package-lock.json
 watch.sh
 node_modules
 kotlin-js-store
+test.sh

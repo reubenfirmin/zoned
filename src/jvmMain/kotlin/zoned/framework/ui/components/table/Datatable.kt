@@ -105,7 +105,6 @@ class Datatable<T, R>(classes: String,
         }
 
         // XXX this is due to a limitation of kotlink.html
-        @HtmlTagMarker
         inline fun FlowContent.tr(classes : String? = null, crossinline block : TR.() -> Unit = {}) : Unit =
             TR(attributesMapOf("class", classes), consumer).visit(block)
     }

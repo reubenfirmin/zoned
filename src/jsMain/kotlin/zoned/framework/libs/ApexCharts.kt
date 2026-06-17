@@ -24,7 +24,7 @@ fun initCharts() {
 
 fun initCharts(elements: NodeList<Element>, initializer: (HTMLElement) -> Unit) {
     for (i in 0 until elements.length) {
-        val element = elements[i]!! as HTMLElement
+        val element = elements[i] as HTMLElement
         if (!element.hasAttribute("rendered-chart")) {
             initializer(element)
             element.setAttribute("rendered-chart", "true")
@@ -36,7 +36,7 @@ fun initCharts(elements: NodeList<Element>, initializer: (HTMLElement) -> Unit) 
 fun initAreaChart(element: HTMLElement) {
     val series = element.querySelectorAll("""[c-role="chart-series"]""").let { elements ->
         (0 until elements.length).mapNotNull {
-            val el = elements[it]!! as HTMLElement
+            val el = elements[it] as HTMLElement
             val data = el.getAttribute("c-data")?.split(",")?.map { item ->
                 item.trim().toDoubleOrNull()
             }?.toTypedArray<Number?>()
@@ -68,7 +68,7 @@ fun initAreaChart(element: HTMLElement) {
             console.warn("Must be (only) one child with rcp_labels class")
             null
         } else {
-            elements[0]?.let {
+            elements[0].let {
                 (it as HTMLElement).getAttribute("c-data")?.split(",")?.map { item ->
                     item.trim()
                 }?.toTypedArray()
@@ -86,7 +86,7 @@ fun initAreaChart(element: HTMLElement) {
 fun initBarChart(element: HTMLElement) {
     val series: List<BarSeries<Double>> = element.querySelectorAll("""[c-role="chart-series"]""").let { elements ->
         (0 until elements.length).mapNotNull {
-            val el = elements[it]!! as HTMLElement
+            val el = elements[it] as HTMLElement
             val data = el.getAttribute("c-data")?.split(",")?.map { item ->
                 // XXX this is brittle
                 item.trim().toDoubleOrNull()
