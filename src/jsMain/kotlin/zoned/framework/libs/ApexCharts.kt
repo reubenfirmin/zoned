@@ -79,7 +79,9 @@ fun initAreaChart(element: HTMLElement) {
     if (series.isEmpty() || xaxisLabels == null) {
         console.warn("Must supply series for area charts")
     } else {
-        AreaChart(element, series, xaxisLabels)
+        val height = element.getAttribute("c-height")?.toIntOrNull() ?: 360
+        val ticks = element.getAttribute("c-ticks")?.toIntOrNull() ?: 6
+        AreaChart(element, series, xaxisLabels, height, ticks)
     }
 }
 
@@ -105,7 +107,8 @@ fun initBarChart(element: HTMLElement) {
     if (series.isEmpty()) {
         console.warn("Must supply series for bar charts")
     } else {
-        HorizontalBarChart(element, series.toTypedArray(), labels.toTypedArray(), labelsInBars) { value, context ->
+        val height = element.getAttribute("c-height")?.toIntOrNull() ?: 320
+        HorizontalBarChart(element, series.toTypedArray(), labels.toTypedArray(), labelsInBars, height) { value, context ->
             // TODO allow this to be passed in with attributes!
             "${context.w.config.xaxis.categories[context.dataPointIndex]} - $value%"
         }

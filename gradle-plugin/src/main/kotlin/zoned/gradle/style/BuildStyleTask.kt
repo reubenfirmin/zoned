@@ -55,10 +55,15 @@ abstract class BuildStyleTask @Inject constructor(
 
     @TaskAction
     fun execute() {
-        // Apps with fully-typed styling (css{} + styleSheet{}) have no tailwind.config.js — the
-        // style step is a no-op for them, so watch scripts / CI can invoke build-style universally.
-        if (!configFile.isPresent) {
-            logger.lifecycle("build-style: no tailwind.config.js — skipping (typed-CSS-only project)")
+        // Tailwind v4 is config-less — it ignores tailwind.config.js entirely. So decide whether to
+        // run by whether the project actually has a Tailwind input stylesheet (one that pulls in
+        // tailwind, directly or via the @zoned token). Apps with fully-typed styling (css{} +
+        // styleSheet{}) have no such file and skip — no tailwind.config.js required either way.
+        val css = inputCssFile.orNull?.asFile
+        val usesTailwind = css != null && css.exists() &&
+            css.readText().let { it.contains("@zoned") || it.contains("tailwindcss") }
+        if (!usesTailwind) {
+            logger.lifecycle("build-style: no Tailwind input stylesheet — skipping (typed-CSS-only project)")
             return
         }
         setupNpxTask()

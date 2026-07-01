@@ -20,6 +20,7 @@ external interface HorizontalBarOptions<Y: Number> {
     var legend: Legend
     var xaxis: XAxis
     var yaxis: YAxis
+    var colors: Array<String>
 }
 
 external interface FormatterContext<Y: Number> {
@@ -47,6 +48,8 @@ external interface PlotOptions {
 external interface Orientation{
     var horizontal: Boolean
     var dataLabels: Position
+    var borderRadius: Int?
+    var barHeight: String?
 }
 
 external interface Position {
@@ -63,6 +66,7 @@ class HorizontalBarChart<Y: Number>(element: Element,
                                     private val series: Array<BarSeries<Y>>,
                                     private val labels: Array<String>,
                                     private val labelsInBars: Boolean,
+                                    private val chartHeight: Int = 320,
                                     private val formatter: (Y, FormatterContext<Y>) -> String) {
 
     init {
@@ -81,23 +85,28 @@ class HorizontalBarChart<Y: Number>(element: Element,
     // TODO much in common with the AreaChart. combine. also make more flexible
     private fun options(data: Array<BarSeries<Y>>, labelsInBars: Boolean, formatter: (Y, FormatterContext<Y>) -> String): HorizontalBarOptions<Y> {
         val darkMode = document.documentElement.classList.contains(ClassName("dark"))
-        val labelColor = if (darkMode) "#9CA3AF" else "#6B7280"
-        val fontFamily = "Inter, sans-serif"
+        val labelColor = if (darkMode) "#A99E8C" else "#6B7280"
+        val borderColor = if (darkMode) "rgba(244,238,228,0.08)" else "#F3F4F6"
+        val fontFamily = "inherit"
         val theme = if (darkMode) "dark" else "light"
 
         val options: HorizontalBarOptions<Y> = unsafeJso {
             chart = unsafeJso {
                 type = "bar"
-                height = 420
+                height = chartHeight
                 this.fontFamily = fontFamily
                 foreColor = labelColor
-                toolBar = unsafeJso {
-                    show = true
+                background = "transparent"
+                toolbar = unsafeJso {
+                    show = false
                 }
             }
+            colors = arrayOf("#6366F1")
             plotOptions = unsafeJso {
                 bar = unsafeJso {
                     horizontal = true
+                    borderRadius = 6
+                    barHeight = "58%"
                     dataLabels = unsafeJso {
                         position = "bottom"
                     }
@@ -109,7 +118,8 @@ class HorizontalBarChart<Y: Number>(element: Element,
                 textAnchor = "start"
                 style = unsafeJso {
                     this.fontFamily = fontFamily
-                    this.fontSize = "18px"
+                    this.fontSize = "16px"
+                    this.colors = arrayOf("#F4EEE4")
                 }
                 offsetX = 0
                 this.formatter = formatter

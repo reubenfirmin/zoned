@@ -7,12 +7,14 @@ class HorizontalBarChart(private val series: List<Double>,
                          private val labels: List<String>,
                          private val name: String,
                          private val labelsInBars: Boolean,
+                         private val height: Int,
                          consumer: TagConsumer<*>): DIV(mapOf("class" to ""), consumer) {
 
     fun render() {
         attributes["c-role"] = "horizontal-bar-chart"
         attributes["c-labels"] = this@HorizontalBarChart.labels.joinToString(",")
         attributes["c-labels-in-bars"] = this@HorizontalBarChart.labelsInBars.toString()
+        attributes["c-height"] = height.toString()
 
         span {
             attributes["c-role"] = "chart-series"
@@ -26,7 +28,7 @@ class HorizontalBarChart(private val series: List<Double>,
     }
 }
 
-fun FlowContent.horizontalBarChart(series: List<Double>, labels: List<String>, name: String, labelsInBars: Boolean) =
-    HorizontalBarChart(series, labels, name, labelsInBars, consumer).visit {
+fun FlowContent.horizontalBarChart(series: List<Double>, labels: List<String>, name: String, labelsInBars: Boolean, height: Int = 320) =
+    HorizontalBarChart(series, labels, name, labelsInBars, height, consumer).visit {
         render()
     }

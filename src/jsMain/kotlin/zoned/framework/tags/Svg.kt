@@ -313,6 +313,9 @@ class SvgG(classes: String?, consumer: TagConsumer<*>) : HTMLTag("g", consumer, 
     fun circle(block: SvgCircle.() -> Unit = {}) =
         SvgCircle(consumer).visit(block)
 
+    fun text(block: SvgText.() -> Unit = {}) =
+        SvgText(consumer).visit(block)
+
 
 }
 

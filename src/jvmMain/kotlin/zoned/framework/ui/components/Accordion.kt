@@ -38,7 +38,7 @@ class Accordion(consumer: TagConsumer<*>): DIV(mapOf(), consumer) {
             attributes["aria-labelledby"] = "accordion-collapse-heading-1"
             div("p-5 border border-b-0 border-gray-200 dark:border-gray-700 dark:bg-gray-900") {
                 div("flex items-center p-2") {
-                    input(classes = "w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600") {
+                    input(classes = "w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600") {
                         id = "checkbox1"
                         type = InputType.checkBox
                         value = ""
@@ -50,7 +50,7 @@ class Accordion(consumer: TagConsumer<*>): DIV(mapOf(), consumer) {
                 }
 
                 div("flex items-center p-2") {
-                    input(classes = "w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600") {
+                    input(classes = "w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600") {
                         id = "checkbox2"
                         type = InputType.checkBox
                         value = ""
@@ -62,7 +62,7 @@ class Accordion(consumer: TagConsumer<*>): DIV(mapOf(), consumer) {
                 }
 
                 div("flex items-center p-2") {
-                    input(classes = "w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600") {
+                    input(classes = "w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600") {
                         id = "checkbox3"
                         type = InputType.checkBox
                         value = ""
@@ -104,7 +104,7 @@ class Accordion(consumer: TagConsumer<*>): DIV(mapOf(), consumer) {
                 p("mb-2 text-gray-500 dark:text-gray-400") { +"""Flowbite is first conceptualized and designed using the Figma software so everything you see in the library has a design equivalent in our Figma file.""" }
                 p("text-gray-500 dark:text-gray-400") {
                     +"""Check out the"""
-                    a(classes = "text-blue-600 dark:text-blue-500 hover:underline") {
+                    a(classes = "text-primary-600 dark:text-primary-500 hover:underline") {
                         href = "https://flowbite.com/figma/"
                         +"""Figma design system"""
                     }
@@ -144,13 +144,13 @@ class Accordion(consumer: TagConsumer<*>): DIV(mapOf(), consumer) {
                 p("mb-2 text-gray-500 dark:text-gray-400") { +"""Learn more about these technologies:""" }
                 ul("ps-5 text-gray-500 list-disc dark:text-gray-400") {
                     li {
-                        a(classes = "text-blue-600 dark:text-blue-500 hover:underline") {
+                        a(classes = "text-primary-600 dark:text-primary-500 hover:underline") {
                             href = "https://flowbite.com/pro/"
                             +"""Flowbite Pro"""
                         }
                     }
                     li {
-                        a(classes = "text-blue-600 dark:text-blue-500 hover:underline") {
+                        a(classes = "text-primary-600 dark:text-primary-500 hover:underline") {
                             href = "https://tailwindui.com/"
                             rel = "nofollow"
                             +"""Tailwind UI"""

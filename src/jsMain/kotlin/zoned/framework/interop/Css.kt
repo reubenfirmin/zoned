@@ -191,6 +191,30 @@ class StyleSheetScope internal constructor() {
     internal fun render(): String = sb.toString()
 }
 
+/**
+ * A nested `@media` block whose inner rules use the same typed [StyleSheetScope.rule] / [raw] DSL —
+ * so responsive/preference breakpoints stay typed instead of hand-written `@media` strings.
+ *
+ * ```
+ * styleSheet("app") {
+ *     rule(".grid") { gridTemplateColumns = GridTemplateColumns("repeat(2, 1fr)") }
+ *     mediaMaxWidth(760.px) { rule(".grid") { gridTemplateColumns = GridTemplateColumns("1fr") } }
+ * }
+ * ```
+ */
+fun StyleSheetScope.media(query: String, block: StyleSheetScope.() -> Unit) {
+    val inner = StyleSheetScope().apply(block).render().trimEnd()
+    if (inner.isNotEmpty()) raw("@media $query {\n$inner\n}")
+}
+
+/** `@media (max-width: [width])`. */
+fun StyleSheetScope.mediaMaxWidth(width: LinearDimension, block: StyleSheetScope.() -> Unit) =
+    media("(max-width: $width)", block)
+
+/** `@media (prefers-reduced-motion: reduce)`. */
+fun StyleSheetScope.mediaReducedMotion(block: StyleSheetScope.() -> Unit) =
+    media("(prefers-reduced-motion: reduce)", block)
+
 private var cssClassCounter = 0
 
 /**

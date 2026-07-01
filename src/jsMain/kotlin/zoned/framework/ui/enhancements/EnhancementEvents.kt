@@ -1,13 +1,16 @@
 package zoned.framework.ui.enhancements
 
 import web.dom.Document
+import web.dom.document
 import web.events.Event
 import web.events.EventType
 import web.events.addEventListener
+import web.events.removeEventListener
 import web.html.HTMLElement
 import web.keyboard.KeyboardEvent
 import web.mouse.MouseEvent
 import web.input.InputEvent
+import zoned.framework.interop.onDestroy
 
 /**
  * Event listener bindings for HTMLElement in enhancement implementations.
@@ -87,3 +90,25 @@ fun Document.onClick(handler: (MouseEvent) -> Unit) =
 
 fun Document.onKeyDown(handler: (KeyboardEvent) -> Unit) =
     addEventListener(EventType<KeyboardEvent>("keydown"), handler)
+
+/**
+ * Register a document-level keydown handler whose lifetime is tied to [owner]:
+ * the listener is added immediately and automatically removed when [owner]
+ * leaves the DOM (via [onDestroy], which also fires on ancestor teardown).
+ *
+ * Use for enhancement overlays/modals that need global keys (Escape, arrows)
+ * while open, instead of pairing a raw `document.addEventListener` with a
+ * hand-managed `removeEventListener` (which leaks if the cleanup is missed).
+ *
+ * ```kotlin
+ * val overlay = mountOverlay { root ->
+ *     onGlobalKeyDown(root) { e -> if (e.key == "Escape") root.remove() }
+ * }
+ * ```
+ */
+fun onGlobalKeyDown(owner: HTMLElement, handler: (KeyboardEvent) -> Unit) {
+    document.addEventListener(EventType<KeyboardEvent>("keydown"), handler)
+    owner.onDestroy {
+        document.removeEventListener(EventType<KeyboardEvent>("keydown"), handler)
+    }
+}
