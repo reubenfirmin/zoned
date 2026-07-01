@@ -93,6 +93,7 @@ kotlin {
                 api(npm("dragula", "3.7.3"))
                 api(npm("file-saver", "2.0.5"))
                 api(npm("browser-fs-access", "0.38.0"))
+                api(npm("three", "0.160.0"))
                 api(npm("html-to-image", "1.11.13"))
                 api(npm("microlight", "0.0.7"))
                 api(npm("leaflet", "1.9.4"))

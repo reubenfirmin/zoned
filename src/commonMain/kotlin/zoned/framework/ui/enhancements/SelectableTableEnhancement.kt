@@ -41,7 +41,7 @@ data class SelectableTableConfig(
     /**
      * CSS class applied to selected rows
      */
-    var selectedClass: String = "bg-blue-900/30",
+    var selectedClass: String = "bg-primary-900/30",
 
     /**
      * Enable shift-click range selection

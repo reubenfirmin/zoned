@@ -28,7 +28,9 @@ external interface Chart {
     var type: String
     var fontFamily: String?
     var foreColor: String?
-    var toolBar: Showable?
+    var toolbar: Showable?
+    var background: String?
+    var animations: Enabled?
 }
 
 external interface Gradient {
@@ -97,6 +99,10 @@ external interface LabelStyle {
 
 external interface Label {
     var style: LabelStyle
+    var rotate: Int?
+    var rotateAlways: Boolean?
+    var hideOverlappingLabels: Boolean?
+    var trim: Boolean?
 }
 
 external interface BorderColor {
@@ -121,6 +127,8 @@ external interface XAxis {
     var axisBorder: BorderColor
     var axisTicks: BorderColor
     var crossHairs: CrossHairs
+    var tickAmount: Int?
+    var tickPlacement: String?
 }
 
 external interface YAxis {
@@ -175,7 +183,7 @@ enum class Axis {
 
 data class AxisOptions(val min: Double, val max: Double?, val axis: Axis)
 
-class AreaChart(element: Element, series: List<Pair<Series, AxisOptions>>, xaxisLabels: Array<String>) {
+class AreaChart(element: Element, series: List<Pair<Series, AxisOptions>>, xaxisLabels: Array<String>, private val chartHeight: Int = 360, private val ticks: Int = 6) {
 
     init {
         val chart = ApexCharts(element, options(series, xaxisLabels))
@@ -189,21 +197,23 @@ class AreaChart(element: Element, series: List<Pair<Series, AxisOptions>>, xaxis
 
     fun options(series: List<Pair<Series, AxisOptions>>, xaxisLabels: Array<String>): ChartOptions {
         val darkMode = document.documentElement.classList.contains(ClassName("dark"))
-        val borderColor = if (darkMode) "#374151" else "#F3F4F6"
-        val labelColor = if (darkMode) "#9CA3AF" else "#6B7280"
-        val opacityFrom = if (darkMode) 0.0 else 0.15
-        val opacityTo = if (darkMode) 0.45 else 0.0
+        val borderColor = if (darkMode) "rgba(244,238,228,0.08)" else "#F3F4F6"
+        val labelColor = if (darkMode) "#A99E8C" else "#6B7280"
+        val opacityFrom = if (darkMode) 0.38 else 0.18
+        val opacityTo = if (darkMode) 0.02 else 0.0
         val theme = if (darkMode) "dark" else "light"
-        val fontFamily = "Inter, sans-serif"
+        // Inherit the host page's font so charts match each app's type system.
+        val fontFamily = "inherit"
 
         val options: ChartOptions = unsafeJso {
             chart = unsafeJso {
-                height = 420
+                height = chartHeight
                 type = "area"
                 this.fontFamily = fontFamily
                 foreColor = labelColor
-                toolBar = unsafeJso {
-                    show = true
+                background = "transparent"
+                toolbar = unsafeJso {
+                    show = false
                 }
             }
             fill = unsafeJso {
@@ -235,19 +245,26 @@ class AreaChart(element: Element, series: List<Pair<Series, AxisOptions>>, xaxis
             }
             this.series = series.map { it.first }.toTypedArray()
             markers = unsafeJso {
-                size = 5
-                strokeColors = "#ffffff"
+                size = 0
+                strokeColors = if (darkMode) "#15120E" else "#ffffff"
                 hover = unsafeJso {
-                    size = "2"
+                    size = "5"
                     sizeOffset = 3
                 }
             }
             xaxis = unsafeJso {
                 categories = xaxisLabels
+                // Avoid a label per data point; show a few evenly spaced, horizontal.
+                tickAmount = minOf(ticks, maxOf(2, xaxisLabels.size - 1))
+                tickPlacement = "on"
                 labels = unsafeJso {
+                    rotate = 0
+                    rotateAlways = false
+                    hideOverlappingLabels = true
+                    trim = false
                     style = unsafeJso {
                         colors = arrayOf(labelColor)
-                        fontSize = "14px"
+                        fontSize = "12px"
                         fontWeight = 500
                     }
                 }
@@ -278,7 +295,8 @@ class AreaChart(element: Element, series: List<Pair<Series, AxisOptions>>, xaxis
                     unsafeJso<YAxis> {
                         opposite = (it.second.axis == Axis.RIGHT)
                         title = unsafeJso {
-                            text = it.second.axis.toString()
+                            // label the axis with the series it tracks, not "LEFT"/"RIGHT"
+                            text = it.first.name
                         }
                         min = it.second.min
                         max = it.second.max

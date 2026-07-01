@@ -64,6 +64,17 @@ fun CssBuilder.animation(
     declarations["animation"] = if (existing != null) "$existing, $entry" else entry
 }
 
+/**
+ * One `transition` entry with a typed [Time] duration and [Timing] — the clean, fully-typed
+ * counterpart to kotlin-css's own `transition(property, durationMs, timing: String)`. Call
+ * repeatedly to compose a comma-separated multi-transition shorthand.
+ */
+fun CssBuilder.transition(property: String, duration: Time, timing: Timing = Timing.ease, delay: Time = 0.s) {
+    val entry = "$property $duration $timing $delay"
+    val existing = declarations["transition"]
+    declarations["transition"] = if (existing != null) "$existing, $entry" else entry
+}
+
 // ---- Gradients (usable in css{} and styleSheet rules alike; they render to an [Image]) ----
 
 class GradientStopScope internal constructor() {

@@ -58,6 +58,30 @@ class ZonedPlugin : Plugin<Project> {
 
                     PORT=$serverPort
                     SERVER_PID=""
+
+                    # --- Runtime state dir -------------------------------------------------------
+                    # Per-user (no /tmp collisions on multi-user boxes) and deliberately under /tmp,
+                    # NOT XDG_RUNTIME_DIR/TMPDIR: the Zoned server JVM is forked by the Gradle daemon
+                    # and recomputes this SAME path from (user, port) with no shared env var, so both
+                    # sides must agree with zero coordination. Keep in lockstep with
+                    # Zoned.watchHeartbeatFile() or the liveness guard silently disarms.
+                    RUNTIME_DIR="/tmp/zoned-${'$'}(id -un)"
+                    mkdir -p "${'$'}RUNTIME_DIR"
+
+                    # Liveness heartbeat: THIS process stamps it every poll tick (see heartbeat()).
+                    # The Zoned server watches its mtime and self-halts if the stamps stop — i.e. if
+                    # watch.sh dies by ANY means (terminal SIGHUP, SIGKILL, OOM, crash). This is the
+                    # portable teardown guarantee: it needs no PDEATHSIG/cgroup (Linux-only) and no
+                    # process parentage (the server is a daemon fork, not our child). The trap-based
+                    # port kill below is the fast path; this heartbeat is the backstop that survives
+                    # even an un-trappable SIGKILL of watch.sh. (JS-only projects have no Zoned JVM
+                    # reading this, so there they fall back to the trap + port-reaper alone.)
+                    HEARTBEAT="${'$'}RUNTIME_DIR/watch-${'$'}PORT.heartbeat"
+
+                    # App PID recorded at bind. gradle's run task forks the server under the daemon,
+                    # so it is NOT a child of SERVER_PID (the gradle CLI) and must be killed by the
+                    # PID that actually holds the port.
+                    APP_PID_FILE="${'$'}RUNTIME_DIR/watch-${'$'}PORT.pid"
                     SESSION_NAME="zoned-watch-${'$'}${'$'}"
 
                     # Status bar state
@@ -67,6 +91,7 @@ class ZonedPlugin : Plugin<Project> {
                     POLL_COUNT=0
                     BUILD_SUCCESS=0
                     BUILD_FAIL=0
+                    LAST_STATUS_LINE=""
 
                     # Check if tmux is available
                     if ! command -v tmux &> /dev/null; then
@@ -138,6 +163,9 @@ class ZonedPlugin : Plugin<Project> {
 
                     # Configure tmux status bar
                     setup_tmux_status() {
+                        # Kill this session the moment its terminal closes, instead of leaving it
+                        # detached/daemonized forever (stale zoned-watch-* sessions on every terminal close).
+                        tmux set-option -q destroy-unattached on
                         tmux set-option -q status on
                         tmux set-option -q status-position bottom
                         tmux set-option -q status-style "bg=#1f2937,fg=#9ca3af"
@@ -148,17 +176,13 @@ class ZonedPlugin : Plugin<Project> {
                         # Hide the window list
                         tmux set-option -q window-status-format ""
                         tmux set-option -q window-status-current-format ""
-                        # Enable mouse mode for scroll support
+                        # Mouse ON so the wheel scrolls the pane (enters copy-mode) and the log stays live.
+                        # Text selection is handled by the terminal (kitty), not tmux — kitty's selection
+                        # binding must include the "grabbed" state to select over tmux's mouse grab.
                         tmux set-option -q mouse on
-                        # Route tmux copy-mode selections to the SYSTEM clipboard. Without this, a
-                        # mouse drag only fills tmux's private buffer and the highlight just vanishes
-                        # on release, so a normal terminal/OS paste gets nothing. set-clipboard pushes
-                        # via OSC52 (kitty honours it); the explicit copy-pipe is a wayland/X fallback.
+                        # Yanks made in tmux copy-mode go to the system clipboard via OSC52 (kitty honours it).
                         tmux set-option -q set-clipboard on
                         tmux set-option -qga terminal-features ",xterm-kitty:clipboard"
-                        CLIP='wl-copy 2>/dev/null || xclip -selection clipboard 2>/dev/null || xsel --clipboard --input 2>/dev/null'
-                        tmux bind-key -T copy-mode    MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "${'$'}CLIP"
-                        tmux bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "${'$'}CLIP"
 
                         # Top bar for git stats using pane border
                         tmux set-option -q pane-border-status top
@@ -201,8 +225,14 @@ class ZonedPlugin : Plugin<Project> {
                             *)         state_display="${'$'}BUILD_STATE" ;;
                         esac
 
-                        local status=" ${'$'}state_display #[fg=#6b7280]│#[default] #[fg=#22c55e]${'$'}BUILD_SUCCESS#[fg=#6b7280]/#[fg=#ef4444]${'$'}BUILD_FAIL#[default] #[fg=#6b7280]│#[default] ${'$'}LAST_BUILD_TIME #[fg=#6b7280]│#[default] ${'$'}DISPLAY_MTIME #[fg=#6b7280]│#[default] #${'$'}POLL_COUNT #[fg=#6b7280]│#[default] :${'$'}PORT "
-                        tmux set-option -q status-left "${'$'}status"
+                        local status=" ${'$'}state_display #[fg=#6b7280]│#[default] #[fg=#22c55e]${'$'}BUILD_SUCCESS#[fg=#6b7280]/#[fg=#ef4444]${'$'}BUILD_FAIL#[default] #[fg=#6b7280]│#[default] ${'$'}LAST_BUILD_TIME #[fg=#6b7280]│#[default] ${'$'}DISPLAY_MTIME #[fg=#6b7280]│#[default] :${'$'}PORT "
+                        # Only push to tmux when the rendered status actually changed. Re-setting
+                        # status-left on every poll tick forces a redraw that cancels any in-progress
+                        # mouse text selection in the pane (the "highlight instantly disappears" bug).
+                        if [ "${'$'}status" != "${'$'}LAST_STATUS_LINE" ]; then
+                            LAST_STATUS_LINE="${'$'}status"
+                            tmux set-option -q status-left "${'$'}status"
+                        fi
                     }
 
                     # Colorize log output (timestamps and log levels)
@@ -242,9 +272,18 @@ class ZonedPlugin : Plugin<Project> {
                     update_status_bar
                     update_git_stats
 
+                    # Stamp the liveness heartbeat. Called every poll tick and right before each
+                    # server start, so a running Zoned JVM sees a fresh file and arms its guard.
+                    heartbeat() { touch "${'$'}HEARTBEAT" 2>/dev/null || true; }
+
                     # Cleanup on exit
+                    CLEANED_UP=""
                     cleanup() {
-                        trap - SIGINT SIGTERM  # Remove traps to prevent re-entry
+                        # Guard re-entry: the EXIT trap fires again on the `exit` below, and the
+                        # script also calls cleanup explicitly at the end.
+                        [ -n "${'$'}CLEANED_UP" ] && return
+                        CLEANED_UP=1
+                        trap - EXIT INT TERM HUP
                         echo ""
                         echo "Shutting down..."
                         # Kill waiter process
@@ -260,11 +299,25 @@ class ZonedPlugin : Plugin<Project> {
                         fi
                         # Kill any remaining processes on port
                         lsof -i:${'$'}PORT -sTCP:LISTEN -t 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+                        # Stop stamping so any straggler JVM's guard also trips as a last resort.
+                        rm -f "${'$'}HEARTBEAT" "${'$'}APP_PID_FILE" 2>/dev/null || true
+                        rmdir "${'$'}RUNTIME_DIR" 2>/dev/null || true
                         exit 0
                     }
-                    trap cleanup SIGINT SIGTERM
+                    # HUP is the signal a closing terminal / destroyed tmux session delivers — the
+                    # old script trapped only INT/TERM and so leaked an orphan on every terminal
+                    # close. EXIT catches every other exit path (error, `set -e`, normal end).
+                    trap cleanup EXIT INT TERM HUP
 
                     kill_server() {
+                        # Kill the actual app JVM recorded at last bind. gradle's `run` forks it under the
+                        # daemon, so it is NOT a child of SERVER_PID and survives a SERVER_PID kill.
+                        if [ -f "${'$'}APP_PID_FILE" ]; then
+                            local app_pid=${'$'}(cat "${'$'}APP_PID_FILE" 2>/dev/null)
+                            [ -n "${'$'}app_pid" ] && kill -9 "${'$'}app_pid" 2>/dev/null || true
+                            rm -f "${'$'}APP_PID_FILE"
+                        fi
+
                         # Kill waiter process first
                         if [ -n "${'$'}WAITER_PID" ]; then
                             kill ${'$'}WAITER_PID 2>/dev/null || true
@@ -353,9 +406,15 @@ class ZonedPlugin : Plugin<Project> {
 
                         local start_ms=${'$'}(date +%s%3N)
                         echo "🚀 [${'$'}(timestamp)] Starting server..."
-                        # Use setsid to run server in a new session, completely detached.
+                        # Stamp fresh BEFORE launch so the server's liveness guard sees a current
+                        # heartbeat at bind and arms itself (see Zoned.installWatchSupervisorGuard).
+                        heartbeat
+                        # No `setsid`: it is absent on macOS, and it was actively harmful — detaching
+                        # the server into its own session is exactly what let it survive a terminal
+                        # close as an orphan. The heartbeat guard now handles teardown regardless of
+                        # parentage, and keeping the child in our tree lets the trap reap it fast.
                         # Full-stack: the JVM `run` task. Frontend-only: the webpack dev server.
-                        setsid ./gradlew --console=plain $serverGradleTask > >(colorize_output) 2>&1 &
+                        ./gradlew --console=plain $serverGradleTask > >(colorize_output) 2>&1 &
                         SERVER_PID=${'$'}!
 
                         # Wait for server to be ready (port listening) - track PID to kill later
@@ -372,6 +431,8 @@ class ZonedPlugin : Plugin<Project> {
                             done
                             local ready_ms=${'$'}(date +%s%3N)
                             local elapsed=${'$'}((ready_ms - start_ms))
+                            # Record the real app JVM pid (now listening) so the next restart can kill it.
+                            lsof -i:${'$'}PORT -sTCP:LISTEN -t 2>/dev/null > "${'$'}APP_PID_FILE"
                             echo "✓ [${'$'}(timestamp)] Server ready on port ${'$'}PORT (${'$'}{elapsed}ms)"
                         ) &
                         WAITER_PID=${'$'}!
@@ -469,6 +530,9 @@ class ZonedPlugin : Plugin<Project> {
                     while true; do
                         sleep 1 || break
                         POLL_COUNT=${'$'}((POLL_COUNT + 1))
+                        # Liveness: as long as this loop runs, the server's guard stays disarmed.
+                        # The instant watch.sh dies, stamps stop and the server self-halts.
+                        heartbeat
                         update_status_bar
 
                         # Update git stats every 30 seconds

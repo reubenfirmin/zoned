@@ -10,10 +10,14 @@ data class Series<T: Number>(val data: List<T?>,
                              val opposite: Boolean = false)
 
 class AreaChart<T: Number>(private val series: List<Series<T>>,
-                           private val labels: List<String>, consumer: TagConsumer<*>): DIV(mapOf("class" to ""), consumer) {
+                           private val labels: List<String>,
+                           private val height: Int,
+                           private val ticks: Int, consumer: TagConsumer<*>): DIV(mapOf("class" to ""), consumer) {
 
     fun render() {
         attributes["c-role"] = "area-chart"
+        attributes["c-height"] = height.toString()
+        attributes["c-ticks"] = ticks.toString()
         series.forEach { serie ->
             span {
                 attributes["c-role"] = "chart-series"
@@ -34,6 +38,6 @@ class AreaChart<T: Number>(private val series: List<Series<T>>,
     }
 }
 
-fun <T: Number> FlowContent.areaChart(series: List<Series<T>>, labels: List<String>) = AreaChart(series, labels, consumer).visit {
+fun <T: Number> FlowContent.areaChart(series: List<Series<T>>, labels: List<String>, height: Int = 360, ticks: Int = 6) = AreaChart(series, labels, height, ticks, consumer).visit {
     render()
 }

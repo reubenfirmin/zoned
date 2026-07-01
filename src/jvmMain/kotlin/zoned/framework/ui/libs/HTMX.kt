@@ -161,6 +161,16 @@ fun HTMLTag.confirm(message: String): HTMLTag {
     return this
 }
 
+/**
+ * Opt this element out of HTMX boosting. Use on a real file-download `<a>` (or
+ * any link that must trigger a full browser navigation) inside a boosted page,
+ * where an AJAX-swapped response would otherwise be wrong. Sets hx-boost="false".
+ */
+fun HTMLTag.htmxNoBoost(): HTMLTag {
+    attributes["hx-boost"] = "false"
+    return this
+}
+
 fun HTMLTag.onChange(action: HTMXAction): HTMLTag {
     with (getRoute(action)) {
         return htmxOnEvent("change",

@@ -274,7 +274,7 @@ class MagicLinkAuth @Inject constructor(
                 p("text-gray-600 mb-6") {
                     +"Please request a new one to sign in."
                 }
-                a(href = "/", classes = "inline-block mt-4 px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700") {
+                a(href = "/", classes = "inline-block mt-4 px-6 py-3 bg-primary-600 text-white rounded hover:bg-primary-700") {
                     +"Return to Home"
                 }
             }
@@ -293,7 +293,7 @@ class MagicLinkAuth @Inject constructor(
                 p("text-gray-600 mb-6") {
                     +"Magic links can only be used once. Please request a new one to sign in."
                 }
-                a(href = "/", classes = "inline-block mt-4 px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700") {
+                a(href = "/", classes = "inline-block mt-4 px-6 py-3 bg-primary-600 text-white rounded hover:bg-primary-700") {
                     +"Return to Home"
                 }
             }
