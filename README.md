@@ -1,125 +1,47 @@
 # Zoned
 
-**Typesafe, full-stack web apps in Kotlin — where the server stays in control.**
+Zoned is a Kotlin Multiplatform framework for web applications. A Javalin server renders
+HTML with kotlinx.html; HTMX requests replace parts of the page. Kotlin/JS adds browser
+behavior such as editors, tooltips, and drag-and-drop. Models and enhancement configs
+can live in `commonMain` and be shared by both targets.
 
-Zoned is a [Kotlin Multiplatform](https://kotlinlang.org/docs/multiplatform.html) framework for
-building server-rendered web applications with light, typesafe client-side enhancements. You write
-the server in Kotlin, you write the browser code in Kotlin, and you share models, serialization, and
-contracts between them. The server renders complete HTML; the client only adds interactivity.
+The framework includes form conversion and validation, JWT and magic-link auth,
+jOOQ/Flyway support for PostgreSQL and SQLite, Tailwind builds, and Kotlin wrappers for
+browser libraries. You can also use the JS target on its own.
 
-It's a hypermedia-first approach (in the spirit of HTMX / Hotwire) but with end-to-end type safety:
-routes are typed callables, forms deserialize into validated Kotlin objects, and client behaviors
-("enhancements") have serializable configs that are generated into a typed server-side DSL.
+Zoned is published locally as `1.0-SNAPSHOT`. APIs may change. This checkout uses
+Kotlin 2.4.0, Gradle 9.5.1, and JDK 21.
 
----
+## Setup
 
-## Project goals
-
-- **The frontend is as dumb as possible.** Render as much as possible into the markup on the
-  server. The client never fetches data or decides what to display — it adds event handlers,
-  animations, and polish to HTML the server already produced.
-- **Type safety end to end.** One language (Kotlin) across the server, the browser, and the shared
-  domain. Routes, forms, HTML (via [kotlinx.html](https://github.com/Kotlin/kotlinx.html)), CSS (via
-  kotlinx.css), and enhancement configs are all typed and checked at compile time.
-- **Hypermedia over JSON APIs.** Interactions exchange HTML fragments (HTMX), not ad-hoc JSON
-  endpoints. The server remains the single source of truth.
-- **Batteries included, conventions over wiring.** A Gradle plugin handles the tedious parts:
-  enhancement code generation, JS bundle configuration, database migration/codegen, Tailwind
-  builds, and a hot-reload dev script.
-- **Two project shapes from one framework.** Build a full-stack app (JVM server + JS client) or a
-  frontend-only single-page app (JS only) with the same primitives.
-
-### What's in the box
-
-| Area | Built on |
-|------|----------|
-| HTTP server | [Javalin](https://javalin.io/) |
-| HTML / CSS | kotlinx.html ([Zoned fork](#the-kotlinxhtml-fork)), kotlinx.css (typed DSLs) |
-| Hypermedia | [HTMX](https://htmx.org/) |
-| Database | [jOOQ](https://www.jooq.org/) (typesafe SQL) + [Flyway](https://flywaydb.org/) migrations, PostgreSQL & SQLite |
-| Auth | JWT, magic-link login, bcrypt, role-based access |
-| Email | Postmark |
-| DI | kotlin-guice |
-| Styling | Tailwind CSS |
-| Client libs (wrapped) | Ace, Sortable, ApexCharts, Tribute, Leaflet, Flowbite, Prism, and more |
-
-**Versions:** Kotlin `2.4.0` · Gradle `9.5.1` · JDK 21+.
-
----
-
-## How it works
-
-An **enhancement** is the unit of client-side interactivity. It has three parts:
-
-1. **A common definition** (`commonMain`) — a `@ClientEnhancement` object plus a `@Serializable`
-   config data class, shared by server and client.
-2. **A generated server DSL** — the Gradle plugin scans your enhancements and generates typed
-   builder functions, so on the server you write `tooltip({ text = "Hi" }) { span { +"Hover me" } }`.
-   That renders a wrapper `<div data-enhancement="tooltip" data-enhancement-config='{"text":"Hi"}'>`.
-3. **A client implementation** (`jsMain`) — a `@EnhancementImpl(...)` function that reads the config
-   off the element and wires up the behavior. The plugin generates a registry that dispatches to it
-   on page load (and on HTMX swaps).
-
-See [`CLAUDE.md`](./CLAUDE.md) for the full architecture guide, the rendering model, and the rules
-for building client-side UI.
-
----
-
-## The kotlinx.html fork
-
-Zoned renders all of its HTML — on both the server and the client — with
-[kotlinx.html](https://github.com/Kotlin/kotlinx.html). Rather than the upstream release, it depends
-on a **fork**, consumed from [JitPack](https://jitpack.io):
-
-- **Repository:** <https://github.com/reubenfirmin/kotlinx-html-new>
-- **Coordinates:** `com.github.reubenfirmin:kotlinx-html-new:0.12.1-web` (the `-web` version suffix
-  marks the fork's lineage). Requires `maven("https://jitpack.io")` in your repositories.
-- **License:** Apache-2.0 (inherited from upstream).
-
-### Why it exists
-
-The client-side enhancement model leans on a richer DOM-building experience than upstream
-kotlinx.html offers for Kotlin/JS. The fork adds:
-
-- **Typed DSL event handlers.** DSL events carry their real DOM event type instead of a generic
-  `Event` — `onClick { event /* MouseEvent */ -> }`, plus `KeyboardEvent`, `FocusEvent`, etc. This
-  is what makes Zoned's "bind live listeners straight from the DSL" model typesafe. (On WasmJS the
-  handler stays a generic `Event` due to lambda-casting limits.)
-- **Real DOM APIs instead of `innerHTML` hacks.** Upstream JS interop paths that relied on
-  `innerHTML` string manipulation are replaced with proper DOM calls — aligning with Zoned's
-  forbidden-patterns rules and its `ElementTrackingConsumer` (the custom consumer behind `ref` /
-  `onMount` lifecycle).
-- **Migration to kotlin-wrappers `web.*` packages**, with `kotlin-js` and `kotlin-browser` exposed
-  as API dependencies, built against **Kotlin 2.4.0** and **kotlin-wrappers 2026.6.2** to match the
-  rest of the Zoned stack.
-
-You don't depend on the fork directly in your app — Zoned pulls it in transitively from JitPack. Your
-app just needs `maven("https://jitpack.io")` in its repositories (see [Getting started](#getting-started)).
-
----
-
-## Getting started
-
-Zoned is currently distributed as `1.0-SNAPSHOT` via your **local Maven repository** — it is not yet
-published to a public repository. So the first step for any app is to build and publish Zoned locally.
-(Its kotlinx.html fork comes from [JitPack](#the-kotlinxhtml-fork), so you no longer build that
-yourself — you just need the JitPack repo declared, shown below.)
-
-### 1. Publish Zoned to Maven Local
+### Publish the framework
 
 ```bash
-git clone <this-repo> zoned
+git clone https://github.com/reubenfirmin/zoned.git
 cd zoned
+```
+
+On a fresh machine, bootstrap the Gradle plugin first. Temporarily comment out
+`id("io.4rc.zoned.plugin") version "1.0-SNAPSHOT"` in the root `build.gradle.kts`, then run:
+
+```bash
+./gradlew :gradle-plugin:publishToMavenLocal
+```
+
+Restore that line, then publish the library and plugin:
+
+```bash
 ./gradlew publishToMavenLocal
 ```
 
-This publishes both the library (per-target artifacts `io.4rc:zoned-jvm` and `io.4rc:zoned-js`) and
-the Gradle plugin (`io.4rc.zoned.plugin`) to `~/.m2`. Re-run it whenever you change framework code so
-dependent apps pick up the update.
+Repeat the last command after changing framework code so apps using Maven Local pick it up.
 
-### 2. Point your app at Maven Local + JitPack
+### Configure an app
 
-In your app's `settings.gradle.kts`, make sure `mavenLocal()` is available to plugins:
+The examples below use a project named `notes`, with Kotlin packages under `example`.
+Use JDK 21 and a Gradle 9.5.1 wrapper in the app project.
+
+`settings.gradle.kts`:
 
 ```kotlin
 pluginManagement {
@@ -129,33 +51,23 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
-```
 
-And in `build.gradle.kts` repositories — include **JitPack**, so Zoned's transitive kotlinx.html
-fork resolves:
-
-```kotlin
-repositories {
-    mavenLocal()
-    mavenCentral()
-    maven("https://jitpack.io")
+dependencyResolutionManagement {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven("https://jitpack.io")
+    }
 }
+
+rootProject.name = "notes"
 ```
 
-From here, pick your project shape: **[frontend-only](#frontend-only-apps)** or
-**[full-stack](#full-stack-apps)**.
+Zoned uses a [kotlinx.html fork](https://github.com/reubenfirmin/kotlinx-html-new)
+with typed DOM events and `web.*` browser types. Its JVM and JS artifacts are transitive
+dependencies, but your app needs the JitPack repository to resolve them.
 
----
-
-## Frontend-only apps
-
-A frontend-only app is a Kotlin/JS single-page application: no server, no database, no bundle served
-by a backend. The Zoned Gradle plugin auto-detects the absence of a JVM target and configures the
-dev workflow accordingly (it uses port **3000** and the `jsBrowserDevelopmentRun` server task).
-
-### build.gradle.kts
-
-Declare only a JS target, and depend on `io.4rc:zoned-js`:
+`build.gradle.kts`:
 
 ```kotlin
 plugins {
@@ -166,314 +78,291 @@ plugins {
 
 kotlin {
     jvmToolchain(21)
-
-    js(IR) {
-        browser {
-            runTask {
-                mainOutputFileName.set("main.bundle.js")
-                sourceMaps = true
-            }
-            webpackTask {
-                mainOutputFileName.set("main.bundle.js")
-            }
-        }
-        binaries.executable()
-    }
-
-    sourceSets["jsMain"].dependencies {
-        implementation("io.4rc:zoned-js:1.0-SNAPSHOT")
-        // any extra npm libs your app needs:
-        // implementation(npm("nomnoml", "1.7.0"))
-    }
-}
-```
-
-> **No `jvm { }` block = frontend-only.** That single difference is what tells the plugin (and you)
-> that there's no backend, no database, and no server-served bundle to configure.
-
-### Project layout
-
-```
-src/jsMain/kotlin/<pkg>/   # your app code (entry point, views, models, controllers)
-src/jsMain/resources/      # index.html, css
-```
-
-### Entry point and routing
-
-Your `main()` sets up client-side routes with the typed `Routes` / `Router` DSL and starts the
-router:
-
-```kotlin
-import zoned.framework.routing.RenderMode
-import zoned.framework.routing.Router
-import zoned.framework.routing.Routes
-
-class App {
-    object index : Routes<Index>(Index(model, eventBus), "/") {
-        val home   = route { "/" to { index(model.currentCanvas()) } }
-        val canvas = route(mode = RenderMode.PARTIAL) {
-            "/{canvas...}" to { params -> /* ... */ }
-        }
-    }
-}
-
-fun main() {
-    App()
-    Router.start()
-}
-```
-
-Views are built with the kotlinx.html DSL plus Zoned's DOM/interop helpers; styling combines
-Tailwind class names with the typed `css {}` DSL.
-
-### Run it
-
-```bash
-./watch.sh                          # generated hot-reload dev loop (tmux) → http://localhost:3000
-# or, manually:
-./gradlew jsBrowserDevelopmentRun   # dev server with hot reload
-./gradlew jsBrowserProductionWebpack  # production bundle
-```
-
----
-
-## Full-stack apps
-
-A full-stack app has a JVM server (Javalin) that renders HTML and serves a compiled JS **bundle**,
-plus a Kotlin/JS client that hydrates that HTML with enhancements. Both targets live in one Gradle
-module and share `commonMain`.
-
-### build.gradle.kts
-
-Declare **both** targets. Depend on `io.4rc:zoned-jvm` in `jvmMain` and `io.4rc:zoned-js` in
-`jsMain`:
-
-```kotlin
-plugins {
-    kotlin("multiplatform") version "2.4.0"
-    id("com.gradleup.shadow") version "9.1.0"          // fat jar for deployment
-    id("io.4rc.zoned.plugin") version "1.0-SNAPSHOT"
-}
-
-kotlin {
-    jvm {
-        testRuns.named("test") { executionTask.configure { useJUnitPlatform() } }
-    }
+    jvm()
     js(IR) {
         browser {
             commonWebpackConfig {
+                outputFileName = "${project.name}.bundle.js"
                 cssSupport { enabled.set(true) }
-                // outputFileName is auto-configured by the zoned plugin
             }
-            webpackTask { output.libraryTarget = "umd" }
         }
         binaries.executable()
     }
-
     sourceSets {
-        val jvmMain by getting {
-            dependencies { implementation("io.4rc:zoned-jvm:1.0-SNAPSHOT") }
+        commonMain.dependencies {
+            implementation("io.4rc:zoned:1.0-SNAPSHOT")
         }
-        val jsMain by getting {
-            dependencies { implementation("io.4rc:zoned-js:1.0-SNAPSHOT") }
-        }
-    }
-}
-```
-
-### Project layout
-
-```
-src/commonMain/kotlin/<pkg>/   # shared models, enhancement definitions
-src/jvmMain/kotlin/<pkg>/      # Main.kt, App.kt, routes/APIs, db, server-side UI
-src/jvmMain/resources/
-    assets/                    # static assets (images, etc.) → copied to dist/
-    db/migration/              # Flyway migrations (V1__*.sql)
-src/jsMain/kotlin/<pkg>/       # MainBundle.kt (JS entry), enhancement impls, client libs
-webpack.config.d/             # custom webpack config snippets (auto-merged)
-dist/                         # runtime output: the bundle + static assets served at /static
-```
-
-### Bundle setup
-
-This is the part that's easy to get wrong, so here's the whole picture. A **bundle** is the compiled
-Kotlin/JS + CSS output that the server serves to the browser. Zoned automates most of it, but you
-have to wire up four things in your app.
-
-**What the Gradle plugin does for you automatically:**
-
-- Derives the bundle name from your project name: `<projectName>.bundle.js`.
-- Auto-configures the webpack `outputFileName` to that name (no manual `mainOutputFileName` needed
-  for full-stack apps — that's why the snippet above omits it).
-- Generates `BundleConfig.kt` (in `build/generated/kotlin/zoned/framework/ui/libs/`) exposing:
-  ```kotlin
-  object BundleConfig {
-      const val BUNDLE_NAME = "<projectName>.bundle.js"
-      const val BUNDLE_PATH = "/static/<projectName>.bundle.js"
-  }
-  ```
-  The framework uses this to inject the correct `<script>` into every page's `<head>`. You don't
-  hand-write the script tag.
-
-**What you wire up in your app:**
-
-**1. A JS entry point.** Export a `main()` (and an init object) from `jsMain` so webpack has an
-entry. Initialize your client libraries / enhancement registry here:
-
-```kotlin
-// src/jsMain/kotlin/<pkg>/ui/MainBundle.kt
-@JsExport
-object MainBundle {
-    init {
-        // initFlowbite(); setupHTMX(...); addHelpers(); etc.
+        jvmMain { kotlin.srcDir("build/generated/kotlin") }
+        jsMain { kotlin.srcDir("build/generated/kotlin-js") }
     }
 }
 
-@JsExport
-fun main() { /* entry */ }
-```
-
-**2. Serve `/static` from `dist/` on the server.** In your `App.build()`:
-
-```kotlin
-import io.javalin.http.staticfiles.Location
-
-staticFiles("/static", System.getProperty("user.dir") + "/dist", Location.EXTERNAL)
-```
-
-This matches `BundleConfig.BUNDLE_PATH` (`/static/<projectName>.bundle.js`). To serve the bundle
-under `/static` from webpack's dev server too, add a one-liner in `webpack.config.d/`:
-
-```js
-// webpack.config.d/js-bundle-directory.js
-config.output.publicPath = '/static'
-```
-
-**3. Copy the built bundle (and assets) into `dist/`.** The server reads from `dist/` at runtime, so
-copy webpack's production output there and make `run` depend on it:
-
-```kotlin
 tasks.register<Copy>("copyBundle") {
-    from("build/dist/js/productionExecutable")   // contains <projectName>.bundle.js
-    into("dist")
     dependsOn("jsBrowserDistribution")
+    from("build/dist/js/productionExecutable")
+    into("dist")
 }
+
 tasks.register<Copy>("copyResources") {
     from("src/jvmMain/resources/assets")
     into("dist")
 }
+
 tasks.register<JavaExec>("run") {
     dependsOn("copyBundle", "copyResources", "jvmMainClasses")
-    mainClass.set("<pkg>.MainKt")
+    mainClass.set("example.MainKt")
     val main = kotlin.jvm().compilations.getByName("main")
     classpath(main.output, main.runtimeDependencyFiles)
 }
 ```
 
-**4. Declare extra npm dependencies in `build.gradle.kts`** (not a separate `package.json`):
+The common dependency resolves to Zoned's JVM and JS artifacts for each target.
+Declare additional npm dependencies in `jsMain.dependencies` using `implementation(npm(...))`.
 
-```kotlin
-val jsMain by getting {
-    dependencies {
-        implementation("io.4rc:zoned-js:1.0-SNAPSHOT")
-        implementation(npm("@whereby.com/browser-sdk", "3.10.10"))
-    }
-}
+The bundle filename matches the plugin's generated path, `/static/notes.bundle.js`.
+The copy tasks put the bundle, lazy-loaded chunks, and assets in `dist/`; the server
+below serves that directory at `/static`.
+`bundleInit()` reads the plugin's generated bundle properties and adds the script tag.
+For deployment, ship `dist/` alongside your server and run it from that directory's parent.
+
+Use this source layout:
+
+```text
+src/commonMain/kotlin/example/        shared models and enhancement definitions
+src/jvmMain/kotlin/example/           server entry point, routes, HTML, database code
+src/jvmMain/resources/assets/         static files copied to dist/
+src/jvmMain/resources/db/migration/   Flyway SQL migrations
+src/jsMain/kotlin/example/            browser entry point and enhancement implementations
 ```
 
-That's the full loop: **plugin names + configures + injects the bundle → you produce it, copy it to
-`dist/`, and serve `dist/` at `/static`.**
+## Recipes
 
-### Server entry point
+### Serve a page and update one fragment
+
+Create `src/jvmMain/kotlin/example/Main.kt`:
 
 ```kotlin
-// src/jvmMain/kotlin/<pkg>/Main.kt
+package example
+
+import java.time.Instant
+import kotlinx.html.*
+import kotlinx.html.stream.createHTML
+import zoned.framework.api.*
+import zoned.framework.auth.Role
+import zoned.framework.ui.libs.Bundle.bundleInit
+
+class HomeApi : Api {
+    override val basePath = ""
+    override val baseRoles = emptyList<Role>()
+
+    @GET("/")
+    fun index(): Response = response {
+        createHTML().html {
+            head {
+                title { +"Notes" }
+                bundleInit()
+            }
+            body {
+                button {
+                    attributes["hx-get"] = route(this@HomeApi::time).url()
+                    attributes["hx-target"] = "#server-time"
+                    +"Get server time"
+                }
+                div { id = "server-time" }
+            }
+        }
+    }
+
+    @GET("/time")
+    fun time(): Response = response {
+        createHTML().p { +Instant.now().toString() }
+    }
+}
+
 fun main() {
-    val config = Configurator.load<MyConfig>()
-    val dataSource = provideSqlLitePooledDataSource(config)
-    Migrate().migrate(config).migrate()
-    App(dataSource, config).build().start(9000)   // Javalin on :9000
+    Zoned.create {
+        apis(HomeApi())
+        staticFiles("/static", System.getProperty("user.dir") + "/dist")
+    }.start(9000)
 }
 ```
 
-The server is assembled with `Zoned.create { ... }` — registering auth, DI bindings, your APIs, and
-static file serving:
+Create `src/jsMain/kotlin/example/Main.kt`:
 
 ```kotlin
-// src/jvmMain/kotlin/<pkg>/ui/App.kt
-fun build(): Zoned = Zoned.create {
-    auth(Auth(jwt))
-    bindings {
-        bind<DataSource>().toInstance(dataSource)
-        bind<MyConfig>().toInstance(appConfig)
-        // ... other bindings
+package example
+
+import zoned.enhancements.ZonedEnhancementRegistry
+import zoned.framework.libs.HTMXHelper
+
+fun main() {
+    HTMXHelper.setupHTMX {
+        ZonedEnhancementRegistry.initialize()
     }
-    apis(
-        get<MagicLinkAuth>(),
-        get<DashboardApi>(),
-        // ... your APIs
-    )
-    staticFiles("/static", System.getProperty("user.dir") + "/dist", Location.EXTERNAL)
 }
 ```
 
-### Database
+Run `./gradlew run` and open <http://localhost:9000>. The button requests `/time` and
+puts its HTML response inside `#server-time`. `route(this@HomeApi::time)` looks up the
+annotated handler, so changing its path also changes the button's URL.
 
-```bash
-./gradlew db-migrate    # run Flyway migrations (src/jvmMain/resources/db/migration)
-./gradlew db-gen        # generate jOOQ models from the migrated schema (run after db-migrate)
+The HTMX callback initializes enhancements on page load and after content swaps.
+`ZonedEnhancementRegistry` handles the enhancements supplied by the framework.
+
+### Add a tooltip to server-rendered content
+
+In `jvmMain`, use the generated wrapper function around the content you want to enhance:
+
+```kotlin
+import kotlinx.html.FlowContent
+import kotlinx.html.span
+import zoned.enhancements.tooltip
+
+fun FlowContent.saveHint() {
+    tooltip({ text = "Changes are saved automatically" }) {
+        span { +"Saved" }
+    }
+}
 ```
 
-Zoned supports PostgreSQL and SQLite; configuration is loaded via the `Configurator` (env / `.env`).
+Call `saveHint()` inside the page's `body` block. The wrapper contains the original HTML
+and a serialized config; the registry from the previous recipe attaches the tooltip behavior.
 
-### Run it
+For your own enhancement, add a `@ClientEnhancement` object and a `@Serializable` config
+in `commonMain`. Give the config default values and mutable (`var`) properties for the DSL.
+In `jsMain`, annotate the implementation with `@EnhancementImpl(YourEnhancement::class)`
+and use this signature:
 
-```bash
-./watch.sh    # generated: runs the JVM server, JS webpack, and Tailwind together with hot reload
+```kotlin
+fun TagConsumer<HTMLElement>.initYourEnhancement(config: YourConfig, children: List<Node>)
 ```
 
-Or the equivalent in separate terminals:
+`TagConsumer` comes from `kotlinx.html`, `HTMLElement` from `web.html`, and `Node` from
+`web.dom`. Use `insertChildren(children)` from `zoned.framework.dom` inside the client
+wrapper to preserve the server's content. The [tooltip implementation](src/jsMain/kotlin/zoned/framework/ui/enhancements/TooltipEnhancementImpl.kt)
+shows the complete pattern.
 
-```bash
-./gradlew run -t            # JVM server  → http://localhost:9000 (serves the bundle from dist/)
-./gradlew build-style -t    # Tailwind CSS rebuild on change
-./gradlew jsBrowserRun -t   # webpack dev server → http://localhost:8080 (proxies backend, hot JS)
+Compilation generates your server DSL and client registry. For the `notes` project,
+also call `notes.enhancements.NotesEnhancementRegistry.initialize()` in the HTMX callback.
+The [rendering guide](CLAUDE.md#rendering-model-kotlinxhtml--elementtrackingconsumer)
+covers DOM references, event handlers, and mount callbacks.
+
+### Mount a Markdown editor
+
+In `jsMain`, pass a mounted container and a save callback to this helper:
+
+```kotlin
+import kotlin.js.Promise
+import kotlinx.css.Color
+import kotlinx.css.px
+import web.html.HTMLElement
+import zoned.framework.libs.*
+
+fun mountEditor(
+    host: HTMLElement,
+    initialText: String,
+    save: (String) -> Unit,
+): Promise<CodeMirrorWrapper> = loadCodeMirror().then { modules ->
+    CodeMirrorWrapper(
+        modules,
+        host,
+        CodeMirrorOptions(
+            text = initialText,
+            markdown = true,
+            lineWrapping = true,
+            theme = CodeMirrorTheme(
+                background = Color("#fafafa"),
+                fontSize = 16.px,
+            ),
+        ),
+    ).also { editor ->
+        editor.addKeyBinding("Mod-s") {
+            save(it.getValue())
+            true
+        }
+        editor.focus()
+    }
+}
 ```
 
-- **:9000** — the real server; uses the bundle in `dist/` (rebuilt by `copyBundle`).
-- **:8080** — webpack dev server for fast JS iteration; proxies API calls to the backend.
+Capture the container with `Ref<HTMLElement>()` and call the helper from `onMount` when
+building it with Zoned's DOM DSL. Keep the returned editor and call `destroy()` when
+removing it; that disposes both its view and stylesheet. The modules load on demand.
 
-Build a deployable fat jar with `./gradlew deployable` (uses the Shadow plugin).
+Use `plain = true` to hide line numbers and the active-line highlight, or `markdown = false`
+for plain text. `setCompletionSource` adds application suggestions. Cursor positions use
+zero-based rows and columns. `setValue` resets undo history when the text changes;
+`insert` and `replace` make undoable edits. `view` and `modules` expose the typed native
+APIs when you need an extension the wrapper doesn't cover.
 
----
+### Migrate a local SQLite database and generate models
 
-## The Gradle plugin
+In the app's `.env`:
 
-Applying `id("io.4rc.zoned.plugin")` gives you these tasks (and wires them into compilation where
-appropriate):
+```dotenv
+DB_PATH=notes.db
+```
 
-| Task | Purpose |
-|------|---------|
-| `generate-enhancements` | Scan `@ClientEnhancement` / `@EnhancementImpl`, generate the server DSL + client registry |
-| `generate-bundle-config` | Generate `BundleConfig.kt` (bundle name & path) |
-| `scaffold-enhancement` | Create boilerplate for a new enhancement |
-| `db-migrate` | Run Flyway migrations |
-| `db-gen` / `model-generate` | Generate jOOQ models from the schema |
-| `db-clean` | Clear the database |
-| `build-style` | Compile Tailwind CSS |
-| `generate-watch-script` | (Re)generate `watch.sh` for the dev loop |
+Create `src/jvmMain/resources/db/migration/V1__create_note.sql`:
 
-Code generation is hooked into the build automatically — `compileKotlinJvm` depends on bundle config
-+ enhancement generation, and `compileKotlinJs` depends on enhancement generation — so you rarely
-invoke these by hand.
+```sql
+CREATE TABLE note (
+    id UUID PRIMARY KEY NOT NULL,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL
+);
+```
 
----
+Create the model package directory, then migrate and generate in that order:
 
-## Status
+```bash
+mkdir -p src/jvmMain/kotlin/example/model
+./gradlew db-migrate
+./gradlew model-generate
+```
 
-Zoned is `1.0-SNAPSHOT` and consumed via **Maven Local** (`publishToMavenLocal`); it is not yet on a
-public Maven repository. APIs may change.
+The generator finds the `model` directory and writes jOOQ sources under `example.model.jooq`.
+Add a new numbered migration for each schema change, then repeat the two Gradle commands.
+
+For PostgreSQL, omit `DB_PATH` and set `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and
+`DB_PASS` in `.env`. The same migration and generation tasks apply.
+
+## Browser-only apps
+
+For a Kotlin/JS app without a server, keep the JS target and common dependency from the
+build above; remove `jvm()`, the `jvmMain` source configuration, and the `copyBundle`,
+`copyResources`, and `run` tasks.
+Put your entry point in `src/jsMain/kotlin` and your `index.html` in `src/jsMain/resources`.
+Have the HTML load `notes.bundle.js` with `defer` so the body exists before `main()` runs.
+
+Build views with kotlinx.html and Zoned's `addToBody` or `appendTo` helpers. Client routing
+is available through [`Routes` and `Router`](src/jsMain/kotlin/zoned/framework/routing).
+
+```bash
+./gradlew jsBrowserDevelopmentRun       # browser dev server
+./gradlew jsBrowserProductionWebpack    # production bundle
+```
+
+## Development commands
+
+| Command | Purpose |
+| --- | --- |
+| `./gradlew generate-watch-script` | Generate the app's `watch.sh` and `test.sh` scripts |
+| `./watch.sh` | Rebuild and restart on changes; requires Bash and tmux |
+| `./test.sh` | Run JVM/browser tests on a separate compiler daemon while watch is running |
+| `./gradlew generate-enhancements` | Regenerate enhancement DSLs and registries; also runs before compilation |
+| `./gradlew build-style` | Compile `style.css` from JVM resources (or JS resources) to `dist/output.css` |
+| `./gradlew publishToMavenLocal` | Publish framework changes for dependent apps |
+
+The watch script expects a `style.css` file in the app's resources and runs `build-style`
+alongside compilation. Start it after setting up that file; the minimal example above
+can run directly with `./gradlew run`. Link `/static/output.css` in your page head if
+you use the generated stylesheet. Build failures are recorded in `.build_errors`.
+
+To change the generated development scripts, edit
+[`ZonedPlugin.kt`](gradle-plugin/src/main/kotlin/zoned/gradle/ZonedPlugin.kt) and regenerate them.
+The framework test suite runs with `./test.sh`; browser tests need a browser installed.
 
 ## License
 
-[MIT](./LICENSE).
+[MIT](LICENSE).

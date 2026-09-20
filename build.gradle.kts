@@ -1,6 +1,7 @@
 plugins {
     kotlin("multiplatform")
     kotlin("plugin.serialization")
+    kotlin("plugin.js-plain-objects")
     id("maven-publish")
     id("io.4rc.zoned.plugin") version "1.0-SNAPSHOT"
 }
@@ -85,6 +86,14 @@ kotlin {
                 api(npm("flowbite", "4.0.2"))
                 api(npm("htmx.org", "2.0.10"))
                 api(npm("ace-builds", "1.44.0"))
+                api(npm("@codemirror/state", "6.7.5"))
+                api(npm("@codemirror/view", "6.43.12"))
+                api(npm("@codemirror/commands", "6.11.1"))
+                api(npm("@codemirror/language", "6.12.4"))
+                api(npm("@codemirror/lang-markdown", "6.5.2"))
+                api(npm("@codemirror/autocomplete", "6.20.3"))
+                api(npm("@codemirror/search", "6.7.2"))
+                api(npm("@lezer/highlight", "1.2.3"))
                 api(npm("file-loader", "6.2.0"))
                 api(npm("path-browserify", "1.0.1"))
                 api(npm("crypto-browserify", "3.12.1"))
