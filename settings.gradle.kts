@@ -5,6 +5,7 @@ pluginManagement {
         kotlin("multiplatform") version kotlinVersion
         kotlin("jvm") version kotlinVersion
         kotlin("plugin.serialization") version kotlinVersion
+        kotlin("plugin.js-plain-objects") version kotlinVersion
         id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
     }
 
