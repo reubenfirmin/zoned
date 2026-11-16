@@ -1,12 +1,19 @@
 package zoned.framework.gl
 
 import org.w3c.dom.HTMLElement
+import js.objects.unsafeJso
+
+external interface RendererOptions {
+    var antialias: Boolean
+    var alpha: Boolean
+}
 
 /** Typed constructor for a transparent, antialiased renderer — hides the JS options bag. */
 fun webGLRenderer(antialias: Boolean = true, alpha: Boolean = true): WebGLRenderer {
-    val params: dynamic = js("({})")
-    params.antialias = antialias
-    params.alpha = alpha
+    val params = unsafeJso<RendererOptions> {
+        this.antialias = antialias
+        this.alpha = alpha
+    }
     return WebGLRenderer(params)
 }
 
