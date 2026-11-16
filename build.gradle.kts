@@ -104,6 +104,7 @@ kotlin {
                 api(npm("browser-fs-access", "0.38.0"))
                 api(npm("three", "0.160.0"))
                 api(npm("html-to-image", "1.11.13"))
+                api(npm("jspdf", "4.2.1"))
                 api(npm("microlight", "0.0.7"))
                 api(npm("leaflet", "1.9.4"))
                 api(npm("nomnoml", "1.7.0"))
